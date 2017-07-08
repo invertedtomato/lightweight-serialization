@@ -63,4 +63,49 @@ public class LightWeightTests {
     public void Serialize_String_1() {
         Assert.Equal(new byte[] { (byte)'a' }, LightWeight.Serialize("a"));
     }
+
+    [Fact]
+    public void Serialize_Object_Empty() {
+        var target = new Empty() {
+            A = 1,
+            B = 9,
+            C = 1000
+        };
+
+        Assert.Equal(new byte[] { }, LightWeight.Serialize(target));
+    }
+    [Fact]
+    public void Serialize_Object_Basic() {
+        var serialized = LightWeight.Serialize(new ThreeInts() {
+            A = 1,
+            B = 9,
+            C = 1000
+        });
+
+        Assert.Equal(new byte[] {
+            0x81, 0x09, // B
+            0x81, 0x01, // A
+            0x82, 0xE8, 0x03 // C
+        }, serialized);
+    }
+
+    [Fact]
+    public void Serialize_Object_Complex() {
+        var serialized = LightWeight.Serialize(new Layered() {
+            Y = "test",
+            Z = new ThreeInts() {
+                A = 1,
+                B = 9,
+                C = 1000
+            }
+        });
+
+        Assert.Equal(new byte[] {
+            0x84, 0x74,0x65,0x73,0x74, // Y
+            0x87, // Z
+                0x81, 0x09, // B
+                0x81, 0x01, // A
+                0x82, 0xE8, 0x03 // C
+        }, serialized);
+    }
 }
