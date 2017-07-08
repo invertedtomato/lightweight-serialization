@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.0</TargetFramework>
+    <AssemblyName>InvertedTomato.LightWeightSerialization.Library</AssemblyName>
+    <RootNamespace>InvertedTomato.LightWeightSerialization</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="InvertedTomato.Buffers" Version="1.0.10" />
+    <PackageReference Include="InvertedTomato.IntegerCompression" Version="1.1.6" />
+  </ItemGroup>
+
+</Project>
