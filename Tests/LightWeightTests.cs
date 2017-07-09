@@ -65,6 +65,20 @@ public class LightWeightTests {
     }
 
     [Fact]
+    public void Serialize_Array_Integer() {
+        var serialized = LightWeight.Serialize(new int[] { 1, 2, 1000 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        }, serialized);
+    }
+
+    [Fact]
     public void Serialize_Object_Empty() {
         var target = new Empty() {
             A = 1,
@@ -174,6 +188,20 @@ public class LightWeightTests {
     [Fact]
     public void Deserialize_String_1() {
         Assert.Equal("a", LightWeight.Deserialize<string>(new byte[] { (byte)'a' }));
+    }
+
+    [Fact]
+    public void Decerialize_Array_Integer() {
+        var result = LightWeight.Deserialize<int[]>(new byte[] {
+         0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        });
+
+        Assert.Equal(new int[] { 1, 2, 1000 }, result);
     }
 
     [Fact]
