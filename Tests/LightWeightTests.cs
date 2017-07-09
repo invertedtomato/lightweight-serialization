@@ -169,13 +169,11 @@ public class LightWeightTests {
 
     [Fact]
     public void Deserialize_String_0() {
-        throw new NotImplementedException();
-        //Assert.Equal(string.Empty, LightWeight.Deserialize<string>(new byte[] { })); // TODO: handling of nulls/empties?
+        Assert.Equal(string.Empty, LightWeight.Deserialize<string>(new byte[] { })); // TODO: handling of nulls/empties?
     }
     [Fact]
     public void Deserialize_String_1() {
-        throw new NotImplementedException();
-        //Assert.Equal("a", LightWeight.Deserialize<string>(new byte[] { (byte)'a' }));
+        Assert.Equal("a", LightWeight.Deserialize<string>(new byte[] { (byte)'a' }));
     }
 
     [Fact]
