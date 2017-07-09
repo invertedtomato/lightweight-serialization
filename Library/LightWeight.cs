@@ -221,86 +221,90 @@ namespace InvertedTomato.LightWeightSerialization {
             return Encoding.UTF8.GetBytes(input);
         }
 
-
-        public static T Deserialize<T>(byte[] raw) {
-            if (null == raw) {
-                throw new ArgumentNullException("input");
+        public static T Deserialize<T>(byte[] payload) {
+            return (T)Deserialize(payload, typeof(T));
+        }
+        public static object Deserialize(byte[] payload, Type type) {
+            if (null == payload) {
+                throw new ArgumentNullException("payload");
             }
-            var t = typeof(T);
-
-            if (t == typeof(bool)) {
-                return (T)(object)DeserializeAsBoolean(raw);
-            }
-
-            if (t == typeof(sbyte)) {
-                return (T)(object)DeserializeAsSInt8(raw);
-            }
-            if (t == typeof(short)) {
-                return (T)(object)DeserializeAsSInt16(raw);
-            }
-            if (t == typeof(int)) {
-                return (T)(object)DeserializeAsSInt32(raw);
-            }
-            if (t == typeof(long)) {
-                return (T)(object)DeserializeAsSInt64(raw);
+            if (null == type) {
+                throw new ArgumentNullException("type");
             }
 
-            if(t == typeof(byte)) {
-                return (T)(object)DeserializeAsUInt8(raw);
-            }
-            if (t == typeof(ushort)) {
-                return (T)(object)DeserializeAsUInt16(raw);
-            }
-            if (t == typeof(uint)) {
-                return (T)(object)DeserializeAsUInt32(raw);
-            }
-            if (t == typeof(ulong)) {
-                return (T)(object)DeserializeAsUInt64(raw);
+            if (type == typeof(bool)) {
+                return DeserializeAsBoolean(payload);
             }
 
-            if (t == typeof(string)) {
-                return (T)(object)DeserializeString(raw);
+            if (type == typeof(sbyte)) {
+                return DeserializeAsSInt8(payload);
             }
-            /*
-            var output = default(T);
+            if (type == typeof(short)) {
+                return DeserializeAsSInt16(payload);
+            }
+            if (type == typeof(int)) {
+                return DeserializeAsSInt32(payload);
+            }
+            if (type == typeof(long)) {
+                return DeserializeAsSInt64(payload);
+            }
 
-            var type = typeof(T);
+            if (type == typeof(byte)) {
+                return DeserializeAsUInt8(payload);
+            }
+            if (type == typeof(ushort)) {
+                return DeserializeAsUInt16(payload);
+            }
+            if (type == typeof(uint)) {
+                return DeserializeAsUInt32(payload);
+            }
+            if (type == typeof(ulong)) {
+                return DeserializeAsUInt64(payload);
+            }
 
+            if (type == typeof(string)) {
+                return DeserializeString(payload);
+            }
 
-            // Iterate through each property,
-            var propertiesSerialized = new byte[byte.MaxValue][];
-            var maxPropertyIndex = -1;
-            var outputBufferSize = 0;
-            foreach (var property in type.GetRuntimeProperties()) {
-                // Get property attribute which tells us the properties' index
-                var lightWeightProperty = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute);
-                if (null == lightWeightProperty) {
-                    // No attribute found, skip
-                    continue;
+            // Instantiate output object
+            var output = Activator.CreateInstance(type);
+
+            // Prepare for object deserialization
+            var codec = new VLQCodec();
+            var buffer = new Buffer<byte>(payload);
+            var lengthBuffer = new Buffer<ulong>(1);
+            var index = -1;
+
+            // Attempt to read field length, if we've reached the end of the payload, abort
+            while (!buffer.IsEmpty) {
+                // Get the length in a usable format
+                codec.Decompress(buffer, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Increment the index
+                index++;
+
+                // Iterate through each property looking for one that matches index
+                foreach (var property in type.GetRuntimeProperties()) {
+                    // Get property attribute which tells us the properties' index
+                    var lightWeightProperty = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute);
+
+                    // Skip if not found, or index doesn't match
+                    if (null == lightWeightProperty || lightWeightProperty.Index != index) {
+                        // No attribute found, skip
+                        continue;
+                    }
+
+                    // Decode value
+                    var value = Deserialize(buffer.DequeueBuffer(length).ToArray(), property.PropertyType);
+
+                    // Set it on property
+                    property.SetValue(output, value);
                 }
+            }
 
-                // Check for duplicate index and abort if found
-                if (null != propertiesSerialized[lightWeightProperty.Index]) {
-                    throw new InvalidOperationException("Duplicate key");
-                }
-
-                // Get value
-                var value = property.GetValue(input, null);
-
-
-                // Serialize property
-                propertiesSerialized[lightWeightProperty.Index] = Serialize(value);
-
-                // Adjust max used index if needed
-                if (lightWeightProperty.Index > maxPropertyIndex) {
-                    maxPropertyIndex = lightWeightProperty.Index;
-                }
-
-                // Take an educated guess how much buffer is required
-                outputBufferSize += propertiesSerialized[lightWeightProperty.Index].Length + 4; // NOTE: this '4' is an arbitary number of spare bytes to fit the length header
-            }*/
-            throw new NotImplementedException();
-
+            return output;
         }
 
         internal static bool DeserializeAsBoolean(byte[] input) {

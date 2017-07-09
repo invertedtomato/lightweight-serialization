@@ -195,8 +195,8 @@ public class LightWeightTests {
                 0xE8, 0x03 // 1000
         });
 
-        Assert.Equal(9, result.A);
-        Assert.Equal(1, result.B);
+        Assert.Equal(1, result.A);
+        Assert.Equal(9, result.B);
         Assert.Equal(1000, result.C);
     }
     [Fact]
