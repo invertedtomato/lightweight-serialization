@@ -8,13 +8,13 @@ using InvertedTomato.Compression.Integers;
 
 /* TODO:
  - abort if type isn't serializable
- - add deserialise
- - add array/enumerable support
+ - add enumerable support?
  - datetime
  - timespan
- -- convert to Stream
+ - convert to Stream?
  - test edge conditions
  - performance compare to protobuff+JSON
+ - Use Buffer<byte> on serialize?
  - readme
 */
 
@@ -457,9 +457,16 @@ namespace InvertedTomato.LightWeightSerialization {
 
 
         public T Deserialize<T>(byte[] payload) {
+            if (null == payload) {
+                throw new ArgumentNullException("payload");
+            }
+
+            return (T)Deserialize(new Buffer<byte>(payload), typeof(T));
+        }
+        public T Deserialize<T>(Buffer<byte> payload) {
             return (T)Deserialize(payload, typeof(T));
         }
-        public object Deserialize(byte[] payload, Type type) {
+        public object Deserialize(Buffer<byte> payload, Type type) {
             if (null == payload) {
                 throw new ArgumentNullException("payload");
             }
@@ -543,14 +550,13 @@ namespace InvertedTomato.LightWeightSerialization {
             var output = Activator.CreateInstance(type);
 
             // Prepare for object deserialization
-            var buffer = new Buffer<byte>(payload);
             var lengthBuffer = new Buffer<ulong>(1);
             var index = -1;
 
             // Attempt to read field length, if we've reached the end of the payload, abort
-            while (!buffer.IsEmpty) {
+            while (!payload.IsEmpty) {
                 // Get the length in a usable format
-                Codec.Decompress(buffer, lengthBuffer);
+                Codec.Decompress(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -569,7 +575,7 @@ namespace InvertedTomato.LightWeightSerialization {
                     }
 
                     // Decode value
-                    var value = Deserialize(buffer.DequeueBuffer(length).ToArray(), property.PropertyType);
+                    var value = Deserialize(payload.DequeueBuffer(length), property.PropertyType);
 
                     // Set it on property
                     property.SetValue(output, value);
@@ -580,180 +586,182 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
 
-        private bool DeserializeBool(byte[] input) {
-            if (null == input) {
+        private bool DeserializeBool(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            if (input.Length == 0) {
+            if (payload.Used == 0) {
                 return false;
             }
-            if (input.Length > 1) {
+            if (payload.Used > 1) {
                 throw new DataFormatException("Boolean values can be no more than 1 byte long.");
             }
-            if (input[0] != byte.MaxValue) {
+            if (payload.Dequeue() != byte.MaxValue) {
                 throw new DataFormatException("Boolean values cannot be anything other than 0xFF.");
             }
 
             return true;
         }
 
-        private sbyte DeserializeSInt8(byte[] input) {
-            if (null == input) {
+        private sbyte DeserializeSInt8(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return (sbyte)input[0];
+                case 1: return (sbyte)payload.Dequeue();
                 default: throw new DataFormatException("SInt8 values can be 0 or 1 bytes.");
             }
         }
-        private short DeserializeSInt16(byte[] input) {
-            if (null == input) {
+        private short DeserializeSInt16(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
-                case 2: return BitConverter.ToInt16(input, 0);
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
                 default: throw new DataFormatException("SInt16 values can be 0, 1, or 2 bytes.");
             }
         }
-        private int DeserializeSInt32(byte[] input) {
-            if (null == input) {
+        private int DeserializeSInt32(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
-                case 2: return BitConverter.ToInt16(input, 0);
-                case 4: return BitConverter.ToInt32(input, 0);
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0); // Possible to optimise
+                case 4: return BitConverter.ToInt32(payload.DequeueBuffer(4).ToArray(), 0);
                 default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }
-        private long DeserializeSInt64(byte[] input) {
-            if (null == input) {
+        private long DeserializeSInt64(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
-                case 2: return BitConverter.ToInt16(input, 0);
-                case 4: return BitConverter.ToInt32(input, 0);
-                case 8: return BitConverter.ToInt64(input, 0);
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                case 4: return BitConverter.ToInt32(payload.DequeueBuffer(4).ToArray(), 0);
+                case 8: return BitConverter.ToInt64(payload.DequeueBuffer(8).ToArray(), 0);
                 default: throw new DataFormatException("SInt64 values can be 0, 1, 2, 4 or 8 bytes.");
             }
         }
 
-        private byte DeserializeUInt8(byte[] input) {
-            if (null == input) {
+        private byte DeserializeUInt8(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
+                case 1: return payload.Dequeue();
                 default: throw new DataFormatException("UInt8 values can be 0 or 1 bytes.");
             }
         }
-        private ushort DeserializeUInt16(byte[] input) {
-            if (null == input) {
+        private ushort DeserializeUInt16(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
-                case 2: return BitConverter.ToUInt16(input, 0);
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
                 default: throw new DataFormatException("UInt16 values can be 0, 1, or 2 bytes.");
             }
         }
-        private uint DeserializeUInt32(byte[] input) {
-            if (null == input) {
+        private uint DeserializeUInt32(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
-                case 2: return BitConverter.ToUInt16(input, 0);
-                case 4: return BitConverter.ToUInt32(input, 0);
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                case 4: return BitConverter.ToUInt32(payload.DequeueBuffer(4).ToArray(), 0);
                 default: throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }
-        private ulong DeserializeUInt64(byte[] input) {
-            if (null == input) {
+        private ulong DeserializeUInt64(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            switch (input.Length) {
+            switch (payload.Used) {
                 case 0: return 0;
-                case 1: return input[0];
-                case 2: return BitConverter.ToUInt16(input, 0);
-                case 4: return BitConverter.ToUInt32(input, 0);
-                case 8: return BitConverter.ToUInt64(input, 0);
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                case 4: return BitConverter.ToUInt32(payload.DequeueBuffer(4).ToArray(), 0);
+                case 8: return BitConverter.ToUInt64(payload.DequeueBuffer(8).ToArray(), 0);
                 default: throw new DataFormatException("UInt64 values can be 0, 1, 2, 4 or 8 bytes.");
             }
         }
 
-        private string DeserializeString(byte[] input) {
-            if (null == input) {
+        private string DeserializeString(Buffer<byte> payload) {
+            if (null == payload) {
                 throw new ArgumentNullException("input");
             }
 
-            return Encoding.UTF8.GetString(input, 0, input.Length);
+            // Get raw bytes
+            var raw = payload.DequeueBuffer(payload.Used).ToArray(); // Possible to optimise
+
+            // Decode using UTF8
+            return Encoding.UTF8.GetString(raw, 0, raw.Length);
         }
 
 
-        private bool[] DeserializeBoolArray(byte[] payload) {
-            var buffer = new Buffer<byte>(payload);
-            
+        private bool[] DeserializeBoolArray(Buffer<byte> payload) {
             var output = new List<bool>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!buffer.IsEmpty) {
+            while (!payload.IsEmpty) {
                 // Get the length in a usable format
-                Codec.Decompress(buffer, lengthBuffer);
+                Codec.Decompress(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
                 // Deserialize element
-                output.Add(DeserializeBool(buffer.DequeueBuffer(length).ToArray()));
+                output.Add(DeserializeBool(payload.DequeueBuffer(length)));
             }
 
             return output.ToArray();
         }
 
-        private sbyte[] DeserializeSInt8Array(byte[] payload) {
+        private sbyte[] DeserializeSInt8Array(Buffer<byte> payload) {
             throw new NotImplementedException();
         }
-        private short[] DeserializeSInt16Array(byte[] payload) {
+        private short[] DeserializeSInt16Array(Buffer<byte> payload) {
             throw new NotImplementedException();
         }
-        private int[] DeserializeSInt32Array(byte[] payload) {
+        private int[] DeserializeSInt32Array(Buffer<byte> payload) {
             throw new NotImplementedException();
         }
-        private long[] DeserializeSInt64Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private byte[] DeserializeUInt8Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-        private ushort[] DeserializeUInt16Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-        private uint[] DeserializeUInt32Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-        private ulong[] DeserializeUInt64Array(byte[] payload) {
+        private long[] DeserializeSInt64Array(Buffer<byte> payload) {
             throw new NotImplementedException();
         }
 
-        private string[] DeserializeStringArray(byte[] payload) {
+        private byte[] DeserializeUInt8Array(Buffer<byte> payload) {
+            throw new NotImplementedException();
+        }
+        private ushort[] DeserializeUInt16Array(Buffer<byte> payload) {
+            throw new NotImplementedException();
+        }
+        private uint[] DeserializeUInt32Array(Buffer<byte> payload) {
+            throw new NotImplementedException();
+        }
+        private ulong[] DeserializeUInt64Array(Buffer<byte> payload) {
+            throw new NotImplementedException();
+        }
+
+        private string[] DeserializeStringArray(Buffer<byte> payload) {
             throw new NotImplementedException();
         }
     }
