@@ -232,10 +232,10 @@ public class LightWeightTests {
         Assert.Equal(new byte[] {
             0x81, // [0]
                 (byte)'a',
-            0x81, // [1]
+            0x82, // [1]
                 (byte)'b', (byte)'c',
-            0x81, // [2]
-                (byte)'d',(byte)'e', (byte)'e'
+            0x83, // [2]
+                (byte)'d',(byte)'e', (byte)'f'
         }, serialized);
     }
 

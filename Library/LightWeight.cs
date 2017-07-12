@@ -286,20 +286,14 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         internal static byte[] SerializeSInt8Array(sbyte[] input) {
-            throw new NotImplementedException();
             var codec = new VLQCodec();
-            var buffer = new Buffer<byte>(input.Length * 1);
+            var buffer = new Buffer<byte>(input.Length * 2);
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                /*
-                // Increase buffer size if needed
-                if (buffer.Available < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
-                }
-                */
+
                 // Append VLQ-encoded length
                 codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
@@ -310,20 +304,14 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         internal static byte[] SerializeSInt16Array(short[] input) {
-            throw new NotImplementedException();
             var codec = new VLQCodec();
-            var buffer = new Buffer<byte>(input.Length * 1);
+            var buffer = new Buffer<byte>(input.Length * 3);
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                /*
-                // Increase buffer size if needed
-                if (buffer.Available < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
-                }
-                */
+
                 // Append VLQ-encoded length
                 codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
@@ -334,20 +322,14 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         internal static byte[] SerializeSInt32Array(int[] input) {
-            throw new NotImplementedException();
             var codec = new VLQCodec();
-            var buffer = new Buffer<byte>(input.Length * 1);
+            var buffer = new Buffer<byte>(input.Length * 5);
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                /*
-                // Increase buffer size if needed
-                if (buffer.Available < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
-                }
-                */
+
                 // Append VLQ-encoded length
                 codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
@@ -358,20 +340,14 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         internal static byte[] SerializeSInt64Array(long[] input) {
-            throw new NotImplementedException();
             var codec = new VLQCodec();
-            var buffer = new Buffer<byte>(input.Length * 1);
+            var buffer = new Buffer<byte>(input.Length * 9);
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                /*
-                // Increase buffer size if needed
-                if (buffer.Available < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
-                }
-                */
+                
                 // Append VLQ-encoded length
                 codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
@@ -456,20 +432,19 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         internal static byte[] SerializeStringArray(string[] input) {
-            throw new NotImplementedException();
             var codec = new VLQCodec();
-            var buffer = new Buffer<byte>(input.Length * 1);
+            var buffer = new Buffer<byte>(input.Length * 8); // Arbitary guess at average string length
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                /*
+                
                 // Increase buffer size if needed
                 if (buffer.Available < serialized.Length + 10) {
                     buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
                 }
-                */
+                
                 // Append VLQ-encoded length
                 codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
