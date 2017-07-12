@@ -4,6 +4,8 @@ using System;
 using Xunit;
 
 public class LightWeightTests {
+    private readonly LightWeight LightWeight = new LightWeight();
+
     [Fact]
     public void Serialize_Boolean_False() {
         Assert.Equal(new byte[] { }, LightWeight.Serialize(false));

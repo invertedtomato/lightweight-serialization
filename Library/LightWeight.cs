@@ -19,15 +19,16 @@ using InvertedTomato.Compression.Integers;
 */
 
 namespace InvertedTomato.LightWeightSerialization {
-    public static class LightWeight {
+    public class LightWeight {
         private const byte MSB = 0x80;
         private static readonly Type PropertyAttribute = typeof(LightWeightPropertyAttribute);
+        private static readonly VLQCodec Codec = new VLQCodec();
 
-        public static byte[] Serialize<T>(T input) {
+        public byte[] Serialize<T>(T input) {
             return Serialize(input, input.GetType());
         }
 
-        public static byte[] Serialize(object input, Type type) {
+        public byte[] Serialize(object input, Type type) {
             if (null == type) {
                 throw new ArgumentNullException("type");
             }
@@ -147,7 +148,7 @@ namespace InvertedTomato.LightWeightSerialization {
             var buffer = new Buffer<byte>(outputBufferSize);
             // TODO: buffer overrun
             // Iterate through each properties serialized data to merge into one output array
-            var codec = new VLQCodec();
+            
             for (var i = 0; i <= maxPropertyIndex; i++) {
                 var propertySerialized = propertiesSerialized[i];
 
@@ -167,7 +168,7 @@ namespace InvertedTomato.LightWeightSerialization {
                     }
 
                     // Append VLQ-encoded length
-                    codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)propertySerialized.Length }), buffer);
+                    Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)propertySerialized.Length }), buffer);
 
                     // Append encoded bytes
                     buffer.EnqueueArray(propertySerialized);
@@ -175,10 +176,9 @@ namespace InvertedTomato.LightWeightSerialization {
             }
 
             return buffer.ToArray();
-            // TODO: arrays?
         }
 
-        internal static byte[] SerializeBool(bool input) {
+        private byte[] SerializeBool(bool input) {
             if (!input) {
                 return new byte[] { };
             }
@@ -186,28 +186,28 @@ namespace InvertedTomato.LightWeightSerialization {
             return new byte[] { byte.MaxValue };
         }
 
-        internal static byte[] SerializeSInt8(sbyte input) {
+        private byte[] SerializeSInt8(sbyte input) {
             if (input == 0) {
                 return new byte[] { };
             }
 
             return new byte[] { (byte)input };
         }
-        internal static byte[] SerializeSInt16(short input) {
+        private byte[] SerializeSInt16(short input) {
             if (input <= sbyte.MaxValue && input >= sbyte.MinValue) {
                 return Serialize((sbyte)input);
             }
 
             return BitConverter.GetBytes(input);
         }
-        internal static byte[] SerializeSInt32(int input) {
+        private byte[] SerializeSInt32(int input) {
             if (input <= short.MaxValue && input >= short.MinValue) {
                 return Serialize((short)input);
             }
 
             return BitConverter.GetBytes(input);
         }
-        internal static byte[] SerializeSInt64(long input) {
+        private byte[] SerializeSInt64(long input) {
             if (input <= int.MaxValue && input >= int.MinValue) {
                 return Serialize((int)input);
             }
@@ -215,21 +215,21 @@ namespace InvertedTomato.LightWeightSerialization {
             return BitConverter.GetBytes(input);
         }
 
-        internal static byte[] SerializeUInt8(byte input) {
+        private byte[] SerializeUInt8(byte input) {
             if (input == 0) {
                 return new byte[] { };
             }
 
             return new byte[] { input };
         }
-        internal static byte[] SerializeUInt16(ushort input) {
+        private byte[] SerializeUInt16(ushort input) {
             if (input <= byte.MaxValue && input >= byte.MinValue) {
                 return Serialize((byte)input);
             }
 
             return BitConverter.GetBytes(input);
         }
-        internal static byte[] SerializeUInt32(uint input) {
+        private byte[] SerializeUInt32(uint input) {
             if (input <= byte.MaxValue && input >= byte.MinValue) {
                 return Serialize((byte)input);
             }
@@ -239,7 +239,7 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return BitConverter.GetBytes(input);
         }
-        internal static byte[] SerializeUInt64(ulong input) {
+        private byte[] SerializeUInt64(ulong input) {
             if (input <= byte.MaxValue && input >= byte.MinValue) {
                 return Serialize((byte)input);
             }
@@ -253,7 +253,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return BitConverter.GetBytes(input);
         }
 
-        internal static byte[] SerializeString(string input) {
+        private byte[] SerializeString(string input) {
             if (null == input) {
                 return new byte[] { };
             }
@@ -261,8 +261,8 @@ namespace InvertedTomato.LightWeightSerialization {
             return Encoding.UTF8.GetBytes(input);
         }
 
-        internal static byte[] SerializeBoolArray(bool[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeBoolArray(bool[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 2); // TRUE is the largest possible value, which encodes as 2 bytes
 
             // Iterate through each element
@@ -276,7 +276,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 }
                 */
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -285,8 +285,8 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
 
-        internal static byte[] SerializeSInt8Array(sbyte[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeSInt8Array(sbyte[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 2);
 
             // Iterate through each element
@@ -295,7 +295,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -303,8 +303,8 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer.ToArray();
         }
-        internal static byte[] SerializeSInt16Array(short[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeSInt16Array(short[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 3);
 
             // Iterate through each element
@@ -313,7 +313,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -321,8 +321,8 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer.ToArray();
         }
-        internal static byte[] SerializeSInt32Array(int[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeSInt32Array(int[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 5);
 
             // Iterate through each element
@@ -331,7 +331,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -339,17 +339,17 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer.ToArray();
         }
-        internal static byte[] SerializeSInt64Array(long[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeSInt64Array(long[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 9);
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                
+
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -358,8 +358,8 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
 
-        internal static byte[] SerializeUInt8Array(byte[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeUInt8Array(byte[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 2); // Longest possible value is 2 bytes (length + paylaod)
 
             // Iterate through each element
@@ -368,7 +368,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -376,8 +376,8 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer.ToArray();
         }
-        internal static byte[] SerializeUInt16Array(ushort[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeUInt16Array(ushort[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 3); // Longest possible value is 3 bytes
 
             // Iterate through each element
@@ -386,7 +386,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -394,8 +394,8 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer.ToArray();
         }
-        internal static byte[] SerializeUInt32Array(uint[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeUInt32Array(uint[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 5); // Longest possible value is 5 bytes
 
             // Iterate through each element
@@ -404,7 +404,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -412,8 +412,8 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer.ToArray();
         }
-        internal static byte[] SerializeUInt64Array(ulong[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeUInt64Array(ulong[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 9); // Longest possible value is 9 bytes
 
             // Iterate through each element
@@ -422,7 +422,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -431,22 +431,22 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
 
-        internal static byte[] SerializeStringArray(string[] input) {
-            var codec = new VLQCodec();
+        private byte[] SerializeStringArray(string[] input) {
+            
             var buffer = new Buffer<byte>(input.Length * 8); // Arbitary guess at average string length
 
             // Iterate through each element
             foreach (var subinput in input) {
                 // Serialize element
                 var serialized = Serialize(subinput);
-                
+
                 // Increase buffer size if needed
                 if (buffer.Available < serialized.Length + 10) {
                     buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
                 }
-                
+
                 // Append VLQ-encoded length
-                codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -456,10 +456,10 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
 
-        public static T Deserialize<T>(byte[] payload) {
+        public T Deserialize<T>(byte[] payload) {
             return (T)Deserialize(payload, typeof(T));
         }
-        public static object Deserialize(byte[] payload, Type type) {
+        public object Deserialize(byte[] payload, Type type) {
             if (null == payload) {
                 throw new ArgumentNullException("payload");
             }
@@ -543,7 +543,7 @@ namespace InvertedTomato.LightWeightSerialization {
             var output = Activator.CreateInstance(type);
 
             // Prepare for object deserialization
-            var codec = new VLQCodec();
+            
             var buffer = new Buffer<byte>(payload);
             var lengthBuffer = new Buffer<ulong>(1);
             var index = -1;
@@ -551,7 +551,7 @@ namespace InvertedTomato.LightWeightSerialization {
             // Attempt to read field length, if we've reached the end of the payload, abort
             while (!buffer.IsEmpty) {
                 // Get the length in a usable format
-                codec.Decompress(buffer, lengthBuffer);
+                Codec.Decompress(buffer, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -580,47 +580,8 @@ namespace InvertedTomato.LightWeightSerialization {
             return output;
         }
 
-        private static object DeserializeStringArray(byte[] payload) {
-            throw new NotImplementedException();
-        }
 
-        private static object DeserializeUInt64Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeUInt32Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeUInt16Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeUInt8Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeSInt64Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeSInt32Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeSInt16Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeSInt8Array(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        private static object DeserializeBoolArray(byte[] payload) {
-            throw new NotImplementedException();
-        }
-
-        internal static bool DeserializeBool(byte[] input) {
+        private bool DeserializeBool(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -638,7 +599,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return true;
         }
 
-        internal static sbyte DeserializeSInt8(byte[] input) {
+        private sbyte DeserializeSInt8(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -649,7 +610,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("SInt8 values can be 0 or 1 bytes.");
             }
         }
-        internal static short DeserializeSInt16(byte[] input) {
+        private short DeserializeSInt16(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -661,7 +622,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("SInt16 values can be 0, 1, or 2 bytes.");
             }
         }
-        internal static int DeserializeSInt32(byte[] input) {
+        private int DeserializeSInt32(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -674,7 +635,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }
-        internal static long DeserializeSInt64(byte[] input) {
+        private long DeserializeSInt64(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -689,7 +650,7 @@ namespace InvertedTomato.LightWeightSerialization {
             }
         }
 
-        internal static byte DeserializeUInt8(byte[] input) {
+        private byte DeserializeUInt8(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -700,7 +661,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("UInt8 values can be 0 or 1 bytes.");
             }
         }
-        internal static ushort DeserializeUInt16(byte[] input) {
+        private ushort DeserializeUInt16(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -712,7 +673,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("UInt16 values can be 0, 1, or 2 bytes.");
             }
         }
-        internal static uint DeserializeUInt32(byte[] input) {
+        private uint DeserializeUInt32(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -725,7 +686,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }
-        internal static ulong DeserializeUInt64(byte[] input) {
+        private ulong DeserializeUInt64(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
@@ -740,12 +701,47 @@ namespace InvertedTomato.LightWeightSerialization {
             }
         }
 
-        internal static string DeserializeString(byte[] input) {
+        private string DeserializeString(byte[] input) {
             if (null == input) {
                 throw new ArgumentNullException("input");
             }
 
             return Encoding.UTF8.GetString(input, 0, input.Length);
+        }
+
+
+        private bool[] DeserializeBoolArray(byte[] payload) {
+            throw new NotImplementedException();
+        }
+
+        private sbyte[] DeserializeSInt8Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+        private short[] DeserializeSInt16Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+        private int[] DeserializeSInt32Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+        private long[] DeserializeSInt64Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+
+        private byte[] DeserializeUInt8Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+        private ushort[] DeserializeUInt16Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+        private uint[] DeserializeUInt32Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+        private ulong[] DeserializeUInt64Array(byte[] payload) {
+            throw new NotImplementedException();
+        }
+
+        private string[] DeserializeStringArray(byte[] payload) {
+            throw new NotImplementedException();
         }
     }
 }
