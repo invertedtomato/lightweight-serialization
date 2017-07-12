@@ -65,7 +65,47 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Serialize_Array_Integer() {
+    public void Serilize_Array_Bool() {
+        var serialized = LightWeight.Serialize(new bool[] { true, true, false });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0xff, // true
+            0x81, // [1]
+                0x02, // true
+            0x80 // [2]
+                // false
+        }, serialized);
+    }
+
+    [Fact]
+    public void Serialize_Array_SInt8() {
+        var serialized = LightWeight.Serialize(new sbyte[] { 1, 2, 3 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x81, // [2]
+                0x03 // 3
+        }, serialized);
+    }
+    [Fact]
+    public void Serialize_Array_SInt16() {
+        var serialized = LightWeight.Serialize(new short[] { 1, 2, 1000 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        }, serialized);
+    }
+    [Fact]
+    public void Serialize_Array_SInt32() {
         var serialized = LightWeight.Serialize(new int[] { 1, 2, 1000 });
 
         Assert.Equal(new byte[] {
@@ -75,6 +115,86 @@ public class LightWeightTests {
                 0x02, // 2
             0x82, // [2]
                 0xE8, 0x03 // 1000
+        }, serialized);
+    }
+    [Fact]
+    public void Serialize_Array_SInt64() {
+        var serialized = LightWeight.Serialize(new long[] { 1, 2, 1000 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        }, serialized);
+    }
+
+    [Fact]
+    public void Serialize_Array_UInt8() {
+        var serialized = LightWeight.Serialize(new byte[] { 1, 2, 3 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x81, // [2]
+                0x03 // 3
+        }, serialized);
+    }
+    [Fact]
+    public void Serialize_Array_UInt16() {
+        var serialized = LightWeight.Serialize(new ushort[] { 1, 2, 1000 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        }, serialized);
+    }
+    [Fact]
+    public void Serialize_Array_UInt32() {
+        var serialized = LightWeight.Serialize(new uint[] { 1, 2, 1000 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        }, serialized);
+    }
+    [Fact]
+    public void Serialize_Array_UInt64() {
+        var serialized = LightWeight.Serialize(new ulong[] { 1, 2, 1000 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        }, serialized);
+    }
+
+    [Fact]
+    public void Serialize_Array_String() {
+        var serialized = LightWeight.Serialize(new string[] { "a", "bc", "def" });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                (byte)'a',
+            0x81, // [1]
+                (byte)'b', (byte)'c',
+            0x81, // [2]
+                (byte)'d',(byte)'e', (byte)'e'
         }, serialized);
     }
 
@@ -191,9 +311,49 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Decerialize_Array_Integer() {
+    public void Decerialize_Array_Bool() {
+        var result = LightWeight.Deserialize<bool[]>(new byte[] {
+            0x81, // [0]
+                0xff, // true
+            0x81, // [1]
+                0xff, // true
+            0x81, // [2]
+                // false
+        });
+
+        Assert.Equal(new bool[] { true, true, false }, result);
+    }
+
+    [Fact]
+    public void Decerialize_Array_SInt8() {
+        var result = LightWeight.Deserialize<sbyte[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x81, // [2]
+                0x03 // 3
+        });
+
+        Assert.Equal(new sbyte[] { 1, 2, 3 }, result);
+    }
+    [Fact]
+    public void Decerialize_Array_SInt16() {
+        var result = LightWeight.Deserialize<short[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        });
+
+        Assert.Equal(new short[] { 1, 2, 1000 }, result);
+    }
+    [Fact]
+    public void Decerialize_Array_SInt32() {
         var result = LightWeight.Deserialize<int[]>(new byte[] {
-         0x81, // [0]
+            0x81, // [0]
                 0x01, // 1
             0x81, // [1]
                 0x02, // 2
@@ -202,6 +362,85 @@ public class LightWeightTests {
         });
 
         Assert.Equal(new int[] { 1, 2, 1000 }, result);
+    }
+    [Fact]
+    public void Decerialize_Array_SInt64() {
+        var result = LightWeight.Deserialize<long[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        });
+
+        Assert.Equal(new long[] { 1, 2, 1000 }, result);
+    }
+
+    [Fact]
+    public void Decerialize_Array_UInt8() {
+        var result = LightWeight.Deserialize<byte[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x81, // [2]
+                0x03 // 3
+        });
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, result);
+    }
+    [Fact]
+    public void Decerialize_Array_UInt16() {
+        var result = LightWeight.Deserialize<ushort[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        });
+
+        Assert.Equal(new ushort[] { 1, 2, 1000 }, result);
+    }
+    [Fact]
+    public void Decerialize_Array_UInt32() {
+        var result = LightWeight.Deserialize<uint[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        });
+
+        Assert.Equal(new uint[] { 1, 2, 1000 }, result);
+    }
+    [Fact]
+    public void Decerialize_Array_UInt64() {
+        var result = LightWeight.Deserialize<ulong[]>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x82, // [2]
+                0xE8, 0x03 // 1000
+        });
+
+        Assert.Equal(new ulong[] { 1, 2, 1000 }, result);
+    }
+
+    [Fact]
+    public void Decerialize_Array_String() {
+        var result = LightWeight.Deserialize<string[]>(new byte[] {
+            0x81, // [0]
+                (byte)'a',
+            0x82, // [1]
+                (byte)'b', (byte)'c',
+            0x80, // [2]
+        });
+
+        Assert.Equal(new string[] { "a", "bc", "" }, result);
     }
 
     [Fact]

@@ -37,7 +37,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 return new byte[] { };
             }
 
-            if (type == typeof(bool)) { // Boolean
+            if (type == typeof(bool)) { // Bool
                 return SerializeBool((bool)input);
             }
 
@@ -73,37 +73,37 @@ namespace InvertedTomato.LightWeightSerialization {
 
 
 
-            if (type == typeof(bool[])) {
+            if (type == typeof(bool[])) { // Bool array
                 return SerializeBoolArray((bool[])input);
             }
 
-            if (type == typeof(sbyte[])) { // SInt8
+            if (type == typeof(sbyte[])) { // SInt8 array
                 return SerializeSInt8Array((sbyte[])input);
             }
-            if (type == typeof(short[])) { // SInt16
+            if (type == typeof(short[])) { // SInt16 array
                 return SerializeSInt16Array((short[])input);
             }
-            if (type == typeof(int[])) { // SInt32
+            if (type == typeof(int[])) { // SInt32 array
                 return SerializeSInt32Array((int[])input);
             }
-            if (type == typeof(long[])) { // SInt64
+            if (type == typeof(long[])) { // SInt64 array
                 return SerializeSInt64Array((long[])input);
             }
 
-            if (type == typeof(byte[])) { // UInt8
+            if (type == typeof(byte[])) { // UInt8 array
                 return SerializeUInt8Array((byte[])input);
             }
-            if (type == typeof(ushort[])) { // UInt16
+            if (type == typeof(ushort[])) { // UInt16 array
                 return SerializeUInt16Array((ushort[])input);
             }
-            if (type == typeof(uint[])) { // UInt32
+            if (type == typeof(uint[])) { // UInt32 array
                 return SerializeUInt32Array((uint[])input);
             }
-            if (type == typeof(ulong[])) { // UInt64
+            if (type == typeof(ulong[])) { // UInt64 array
                 return SerializeUInt64Array((ulong[])input);
             }
 
-            if (type == typeof(string[])) { // String
+            if (type == typeof(string[])) { // String array
                 return SerializeStringArray((string[])input);
             }
 
