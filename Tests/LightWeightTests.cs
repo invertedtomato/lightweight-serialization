@@ -389,7 +389,7 @@ public class LightWeightTests {
                 0xff, // true
             0x81, // [1]
                 0xff, // true
-            0x81, // [2]
+            0x80, // [2]
                 // false
         });
 

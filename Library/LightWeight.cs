@@ -148,7 +148,7 @@ namespace InvertedTomato.LightWeightSerialization {
             var buffer = new Buffer<byte>(outputBufferSize);
             // TODO: buffer overrun
             // Iterate through each properties serialized data to merge into one output array
-            
+
             for (var i = 0; i <= maxPropertyIndex; i++) {
                 var propertySerialized = propertiesSerialized[i];
 
@@ -262,7 +262,7 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         private byte[] SerializeBoolArray(bool[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 2); // TRUE is the largest possible value, which encodes as 2 bytes
 
             // Iterate through each element
@@ -286,7 +286,7 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         private byte[] SerializeSInt8Array(sbyte[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 2);
 
             // Iterate through each element
@@ -304,7 +304,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         private byte[] SerializeSInt16Array(short[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 3);
 
             // Iterate through each element
@@ -322,7 +322,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         private byte[] SerializeSInt32Array(int[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 5);
 
             // Iterate through each element
@@ -340,7 +340,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         private byte[] SerializeSInt64Array(long[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 9);
 
             // Iterate through each element
@@ -359,7 +359,7 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         private byte[] SerializeUInt8Array(byte[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 2); // Longest possible value is 2 bytes (length + paylaod)
 
             // Iterate through each element
@@ -377,7 +377,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         private byte[] SerializeUInt16Array(ushort[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 3); // Longest possible value is 3 bytes
 
             // Iterate through each element
@@ -395,7 +395,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         private byte[] SerializeUInt32Array(uint[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 5); // Longest possible value is 5 bytes
 
             // Iterate through each element
@@ -413,7 +413,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.ToArray();
         }
         private byte[] SerializeUInt64Array(ulong[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 9); // Longest possible value is 9 bytes
 
             // Iterate through each element
@@ -432,7 +432,7 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         private byte[] SerializeStringArray(string[] input) {
-            
+
             var buffer = new Buffer<byte>(input.Length * 8); // Arbitary guess at average string length
 
             // Iterate through each element
@@ -543,7 +543,6 @@ namespace InvertedTomato.LightWeightSerialization {
             var output = Activator.CreateInstance(type);
 
             // Prepare for object deserialization
-            
             var buffer = new Buffer<byte>(payload);
             var lengthBuffer = new Buffer<ulong>(1);
             var index = -1;
@@ -711,7 +710,21 @@ namespace InvertedTomato.LightWeightSerialization {
 
 
         private bool[] DeserializeBoolArray(byte[] payload) {
-            throw new NotImplementedException();
+            var buffer = new Buffer<byte>(payload);
+            
+            var output = new List<bool>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!buffer.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(buffer, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeBool(buffer.DequeueBuffer(length).ToArray()));
+            }
+
+            return output.ToArray();
         }
 
         private sbyte[] DeserializeSInt8Array(byte[] payload) {
