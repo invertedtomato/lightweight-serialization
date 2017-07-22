@@ -383,7 +383,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Decerialize_Array_Bool() {
+    public void Deserialize_Array_Bool() {
         var result = LightWeight.Deserialize<bool[]>(new byte[] {
             0x81, // [0]
                 0xff, // true
@@ -397,7 +397,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Decerialize_Array_SInt8() {
+    public void Deserialize_Array_SInt8() {
         var result = LightWeight.Deserialize<sbyte[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -410,7 +410,7 @@ public class LightWeightTests {
         Assert.Equal(new sbyte[] { 1, 2, 3 }, result);
     }
     [Fact]
-    public void Decerialize_Array_SInt16() {
+    public void Deserialize_Array_SInt16() {
         var result = LightWeight.Deserialize<short[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -423,7 +423,7 @@ public class LightWeightTests {
         Assert.Equal(new short[] { 1, 2, 1000 }, result);
     }
     [Fact]
-    public void Decerialize_Array_SInt32() {
+    public void Deserialize_Array_SInt32() {
         var result = LightWeight.Deserialize<int[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -436,7 +436,7 @@ public class LightWeightTests {
         Assert.Equal(new int[] { 1, 2, 1000 }, result);
     }
     [Fact]
-    public void Decerialize_Array_SInt64() {
+    public void Deserialize_Array_SInt64() {
         var result = LightWeight.Deserialize<long[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -450,7 +450,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Decerialize_Array_UInt8() {
+    public void Deserialize_Array_UInt8() {
         var result = LightWeight.Deserialize<byte[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -463,7 +463,7 @@ public class LightWeightTests {
         Assert.Equal(new byte[] { 1, 2, 3 }, result);
     }
     [Fact]
-    public void Decerialize_Array_UInt16() {
+    public void Deserialize_Array_UInt16() {
         var result = LightWeight.Deserialize<ushort[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -476,7 +476,7 @@ public class LightWeightTests {
         Assert.Equal(new ushort[] { 1, 2, 1000 }, result);
     }
     [Fact]
-    public void Decerialize_Array_UInt32() {
+    public void Deserialize_Array_UInt32() {
         var result = LightWeight.Deserialize<uint[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -489,7 +489,7 @@ public class LightWeightTests {
         Assert.Equal(new uint[] { 1, 2, 1000 }, result);
     }
     [Fact]
-    public void Decerialize_Array_UInt64() {
+    public void Deserialize_Array_UInt64() {
         var result = LightWeight.Deserialize<ulong[]>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -503,7 +503,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Decerialize_Array_String() {
+    public void Deserialize_Array_String() {
         var result = LightWeight.Deserialize<string[]>(new byte[] {
             0x81, // [0]
                 (byte)'a',

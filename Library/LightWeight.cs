@@ -736,33 +736,141 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         private sbyte[] DeserializeSInt8Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<sbyte>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeSInt8(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
         private short[] DeserializeSInt16Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<short>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeSInt16(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
         private int[] DeserializeSInt32Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<int>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeSInt32(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
         private long[] DeserializeSInt64Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<long>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeSInt64(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
 
         private byte[] DeserializeUInt8Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<byte>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeUInt8(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
         private ushort[] DeserializeUInt16Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<ushort>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeUInt16(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
         private uint[] DeserializeUInt32Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<uint>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeUInt32(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
         private ulong[] DeserializeUInt64Array(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<ulong>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeUInt64(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
 
         private string[] DeserializeStringArray(Buffer<byte> payload) {
-            throw new NotImplementedException();
+            var output = new List<string>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (!payload.IsEmpty) {
+                // Get the length in a usable format
+                Codec.Decompress(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeString(payload.DequeueBuffer(length)));
+            }
+
+            return output.ToArray();
         }
     }
 }
