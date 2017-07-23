@@ -456,11 +456,13 @@ public class LightWeightTests {
                 0x01, // 1
             0x81, // [1]
                 0x02, // 2
+            0x81, // [3]
+                0xff, // 255
             0x81, // [2]
-                0x03 // 3
+                0x03, // 3
         });
 
-        Assert.Equal(new byte[] { 1, 2, 3 }, result);
+        Assert.Equal(new byte[] { 1, 2, 255, 3 }, result);
     }
     [Fact]
     public void Deserialize_Array_UInt16() {

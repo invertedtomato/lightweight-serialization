@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="InvertedTomato.Buffers" Version="1.0.10" />
-    <PackageReference Include="InvertedTomato.IntegerCompression" Version="1.1.6" />
+    <PackageReference Include="InvertedTomato.Buffers" Version="1.0.11" />
+    <PackageReference Include="InvertedTomato.IntegerCompression" Version="1.1.7" />
   </ItemGroup>
 
 </Project>

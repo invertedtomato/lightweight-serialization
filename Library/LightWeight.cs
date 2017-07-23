@@ -155,20 +155,20 @@ namespace InvertedTomato.LightWeightSerialization {
                 // If index was missed...
                 if (null == propertySerialized) {
                     // Increase buffer size if needed
-                    if (buffer.Available < 1) {
-                        buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + 1));
+                    if (buffer.Writable < 1) {
+                        buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + 1));
                     }
 
                     // Append stub byte
                     buffer.Enqueue(MSB);
                 } else {
                     // Increase buffer size if needed
-                    if (buffer.Available < propertySerialized.Length + 10) {
-                        buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + propertiesSerialized.Length + 10));
+                    if (buffer.Writable < propertySerialized.Length + 10) {
+                        buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + propertiesSerialized.Length + 10));
                     }
 
                     // Append VLQ-encoded length
-                    Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)propertySerialized.Length }), buffer);
+                    Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)propertySerialized.Length }), buffer);
 
                     // Append encoded bytes
                     buffer.EnqueueArray(propertySerialized);
@@ -276,7 +276,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 }
                 */
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -295,7 +295,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -313,7 +313,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -331,7 +331,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -349,7 +349,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -368,7 +368,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -386,7 +386,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -404,7 +404,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -422,7 +422,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -441,12 +441,12 @@ namespace InvertedTomato.LightWeightSerialization {
                 var serialized = Serialize(subinput);
 
                 // Increase buffer size if needed
-                if (buffer.Available < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
+                if (buffer.Writable < serialized.Length + 10) {
+                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + serialized.Length + 10)); // 10 is arbitary
                 }
 
                 // Append VLQ-encoded length
-                Codec.Compress(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
 
                 // Append encoded bytes
                 buffer.EnqueueArray(serialized);
@@ -554,9 +554,9 @@ namespace InvertedTomato.LightWeightSerialization {
             var index = -1;
 
             // Attempt to read field length, if we've reached the end of the payload, abort
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -591,10 +591,10 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            if (payload.Used == 0) {
+            if (payload.Readable == 0) {
                 return false;
             }
-            if (payload.Used > 1) {
+            if (payload.Readable > 1) {
                 throw new DataFormatException("Boolean values can be no more than 1 byte long.");
             }
             if (payload.Dequeue() != byte.MaxValue) {
@@ -609,7 +609,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return (sbyte)payload.Dequeue();
                 default: throw new DataFormatException("SInt8 values can be 0 or 1 bytes.");
@@ -620,7 +620,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
@@ -632,7 +632,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0); // Possible to optimise
@@ -645,7 +645,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
@@ -660,7 +660,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 default: throw new DataFormatException("UInt8 values can be 0 or 1 bytes.");
@@ -671,7 +671,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
@@ -683,7 +683,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
@@ -696,7 +696,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 throw new ArgumentNullException("input");
             }
 
-            switch (payload.Used) {
+            switch (payload.Readable) {
                 case 0: return 0;
                 case 1: return payload.Dequeue();
                 case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
@@ -712,7 +712,7 @@ namespace InvertedTomato.LightWeightSerialization {
             }
 
             // Get raw bytes
-            var raw = payload.DequeueBuffer(payload.Used).ToArray(); // Possible to optimise
+            var raw = payload.DequeueBuffer(payload.Readable).ToArray(); // Possible to optimise
 
             // Decode using UTF8
             return Encoding.UTF8.GetString(raw, 0, raw.Length);
@@ -722,9 +722,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private bool[] DeserializeBoolArray(Buffer<byte> payload) {
             var output = new List<bool>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -738,9 +738,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private sbyte[] DeserializeSInt8Array(Buffer<byte> payload) {
             var output = new List<sbyte>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -753,9 +753,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private short[] DeserializeSInt16Array(Buffer<byte> payload) {
             var output = new List<short>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -768,9 +768,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private int[] DeserializeSInt32Array(Buffer<byte> payload) {
             var output = new List<int>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -783,9 +783,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private long[] DeserializeSInt64Array(Buffer<byte> payload) {
             var output = new List<long>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -799,9 +799,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private byte[] DeserializeUInt8Array(Buffer<byte> payload) {
             var output = new List<byte>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -814,9 +814,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private ushort[] DeserializeUInt16Array(Buffer<byte> payload) {
             var output = new List<ushort>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -829,9 +829,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private uint[] DeserializeUInt32Array(Buffer<byte> payload) {
             var output = new List<uint>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -844,9 +844,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private ulong[] DeserializeUInt64Array(Buffer<byte> payload) {
             var output = new List<ulong>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
@@ -860,9 +860,9 @@ namespace InvertedTomato.LightWeightSerialization {
         private string[] DeserializeStringArray(Buffer<byte> payload) {
             var output = new List<string>();
             var lengthBuffer = new Buffer<ulong>(1);
-            while (!payload.IsEmpty) {
+            while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.Decompress(payload, lengthBuffer);
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
                 var length = (int)lengthBuffer.Dequeue();
                 lengthBuffer.Reset();
 
