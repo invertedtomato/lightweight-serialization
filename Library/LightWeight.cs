@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using InvertedTomato.Compression.Integers;
+using System.Collections;
 
 /* TODO:
  - abort if type isn't serializable
@@ -19,95 +20,197 @@ using InvertedTomato.Compression.Integers;
 */
 
 namespace InvertedTomato.LightWeightSerialization {
-    public class LightWeight {
+    public static class LightWeight {
         private const byte MSB = 0x80;
         private static readonly Type PropertyAttribute = typeof(LightWeightPropertyAttribute);
         private static readonly VLQCodec Codec = new VLQCodec();
 
-        public byte[] Serialize<T>(T input) {
-            return Serialize(input, input.GetType());
-        }
-
-        public byte[] Serialize(object input, Type type) {
-            if (null == type) {
-                throw new ArgumentNullException("type");
-            }
-
-            // Serialize input to byte array
-            if (input == null) { // Null
+        public static byte[] Serialize<T>(T value) {
+            if (null == value) {
                 return new byte[] { };
             }
 
+            var buffer = new Buffer<byte>(8);
+            buffer = Serialize(value, value.GetType(), buffer);
+            return buffer.ToArray();
+        }
+
+        private static Buffer<byte> Serialize(object value, Type type, Buffer<byte> buffer) {
+            // Serialize input to byte array
+            if (value == null) { // Null
+                return SerializeNull(buffer);
+            }
+
             if (type == typeof(bool)) { // Bool
-                return SerializeBool((bool)input);
+                return SerializeBool((bool)value, buffer);
             }
 
             if (type == typeof(sbyte)) { // SInt8
-                return SerializeSInt8((sbyte)input);
+                return SerializeSInt8((sbyte)value, buffer);
             }
             if (type == typeof(short)) { // SInt16
-                return SerializeSInt16((short)input);
+                return SerializeSInt16((short)value, buffer);
             }
             if (type == typeof(int)) { // SInt32
-                return SerializeSInt32((int)input);
+                return SerializeSInt32((int)value, buffer);
             }
             if (type == typeof(long)) { // SInt64
-                return SerializeSInt64((long)input);
+                return SerializeSInt64((long)value, buffer);
             }
 
             if (type == typeof(byte)) { // UInt8
-                return SerializeUInt8((byte)input);
+                return SerializeUInt8((byte)value, buffer);
             }
             if (type == typeof(ushort)) { // UInt16
-                return SerializeUInt16((ushort)input);
+                return SerializeUInt16((ushort)value, buffer);
             }
             if (type == typeof(uint)) { // UInt32
-                return SerializeUInt32((uint)input);
+                return SerializeUInt32((uint)value, buffer);
             }
             if (type == typeof(ulong)) { // UInt64
-                return SerializeUInt64((ulong)input);
+                return SerializeUInt64((ulong)value, buffer);
             }
 
             if (type == typeof(string)) { // String
-                return SerializeString((string)input);
+                return SerializeString((string)value, buffer);
             }
 
-
-
-            if (type == typeof(bool[])) { // Bool array
-                return SerializeBoolArray((bool[])input);
+            var dict = value as IDictionary;
+            if (null != dict) {
+                return SerializeDictionary(dict, buffer);
             }
 
-            if (type == typeof(sbyte[])) { // SInt8 array
-                return SerializeSInt8Array((sbyte[])input);
-            }
-            if (type == typeof(short[])) { // SInt16 array
-                return SerializeSInt16Array((short[])input);
-            }
-            if (type == typeof(int[])) { // SInt32 array
-                return SerializeSInt32Array((int[])input);
-            }
-            if (type == typeof(long[])) { // SInt64 array
-                return SerializeSInt64Array((long[])input);
+            var enu = value as IEnumerable;
+            if (null != enu) {
+                return SerializeEnumerable(enu, buffer);
             }
 
-            if (type == typeof(byte[])) { // UInt8 array
-                return SerializeUInt8Array((byte[])input);
-            }
-            if (type == typeof(ushort[])) { // UInt16 array
-                return SerializeUInt16Array((ushort[])input);
-            }
-            if (type == typeof(uint[])) { // UInt32 array
-                return SerializeUInt32Array((uint[])input);
-            }
-            if (type == typeof(ulong[])) { // UInt64 array
-                return SerializeUInt64Array((ulong[])input);
+            return SerializeObject(value, type, buffer);
+        }
+
+        private static Buffer<byte> SerializeNull(Buffer<byte> buffer) {
+            return buffer;
+        }
+        private static Buffer<byte> SerializeBool(bool input, Buffer<byte> buffer) {
+            if (!input) {
+                return buffer;
             }
 
-            if (type == typeof(string[])) { // String array
-                return SerializeStringArray((string[])input);
+            return buffer.EnqueueArrayWithResize(new byte[] { byte.MaxValue });
+        }
+
+        private static Buffer<byte> SerializeSInt8(sbyte input, Buffer<byte> buffer) {
+            if (input == 0) {
+                return buffer;
             }
 
+            return buffer.EnqueueArrayWithResize(new byte[] { (byte)input });
+        }
+        private static Buffer<byte> SerializeSInt16(short input, Buffer<byte> buffer) {
+            if (input <= sbyte.MaxValue && input >= sbyte.MinValue) {
+                return SerializeSInt8((sbyte)input, buffer);
+            } else {
+                return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
+            }
+        }
+        private static Buffer<byte> SerializeSInt32(int input, Buffer<byte> buffer) {
+            if (input <= short.MaxValue && input >= short.MinValue) {
+                return SerializeSInt16((short)input, buffer);
+            }
+
+            return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
+        }
+        private static Buffer<byte> SerializeSInt64(long input, Buffer<byte> buffer) {
+            if (input <= int.MaxValue && input >= int.MinValue) {
+                return SerializeSInt32((int)input, buffer);
+            }
+
+            return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
+        }
+
+        private static Buffer<byte> SerializeUInt8(byte input, Buffer<byte> buffer) {
+            if (input == 0) {
+                return buffer;
+            }
+
+            return buffer.EnqueueArrayWithResize(new byte[] { input });
+        }
+        private static Buffer<byte> SerializeUInt16(ushort input, Buffer<byte> buffer) {
+            if (input <= byte.MaxValue && input >= byte.MinValue) {
+                return SerializeUInt8((byte)input, buffer);
+            }
+
+            return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
+        }
+        private static Buffer<byte> SerializeUInt32(uint input, Buffer<byte> buffer) {
+            if (input <= ushort.MaxValue && input >= ushort.MinValue) {
+                return SerializeUInt16((ushort)input, buffer);
+            }
+
+            return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
+        }
+        private static Buffer<byte> SerializeUInt64(ulong input, Buffer<byte> buffer) {
+            if (input <= uint.MaxValue && input >= uint.MinValue) {
+                return SerializeUInt32((uint)input, buffer);
+            }
+
+            return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
+        }
+
+        private static Buffer<byte> SerializeString(string input, Buffer<byte> buffer) {
+            if (null == input) {
+                return buffer;
+            }
+
+            return buffer.EnqueueArrayWithResize(Encoding.UTF8.GetBytes(input));
+        }
+
+        private static Buffer<byte> SerializeEnumerable(IEnumerable value, Buffer<byte> buffer) {
+            // Iterate through each element
+            foreach (var subinput in value) {
+                // Serialize element
+                var serialized = Serialize(subinput);
+
+                // Resize buffer if required
+                var space = 10 + serialized.Length; // 10 is for length header
+                if (buffer.Writable < space) {
+                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + space));
+                }
+
+                // Append VLQ-encoded length
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+
+                // Append serialized bytes
+                buffer.EnqueueArray(serialized);
+            }
+
+            return buffer;
+        }
+        private static Buffer<byte> SerializeDictionary(IDictionary value, Buffer<byte> buffer) {
+            // Enumerate all values
+            var e = value.GetEnumerator();
+            while (e.MoveNext()) {
+                // Serialize elements
+                var k = Serialize(e.Key);
+                var v = Serialize(e.Value);
+
+                // Resize buffer if required
+                var space = 10 + k.Length + v.Length; // 10 is for length header
+                if (buffer.Writable < space) {
+                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + space));
+                }
+
+                // Append VLQ-encoded length
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)k.Length + (ulong)v.Length }), buffer);
+
+                // Append serialized data
+                buffer.EnqueueArray(k);
+                buffer.EnqueueArray(v);
+            }
+
+            return buffer;
+        }
+        private static Buffer<byte> SerializeObject(object value, Type type, Buffer<byte> buffer) {
 
             // Iterate through each property,
             var propertiesSerialized = new byte[byte.MaxValue][];
@@ -126,12 +229,8 @@ namespace InvertedTomato.LightWeightSerialization {
                     throw new InvalidOperationException("Duplicate key");
                 }
 
-                // Get value
-                var value = property.GetValue(input, null);
-
-
                 // Serialize property
-                propertiesSerialized[lightWeightProperty.Index] = Serialize(value);
+                propertiesSerialized[lightWeightProperty.Index] = Serialize(property.GetValue(value, null));
 
                 // Adjust max used index if needed
                 if (lightWeightProperty.Index > maxPropertyIndex) {
@@ -144,11 +243,12 @@ namespace InvertedTomato.LightWeightSerialization {
 
             // TODO: truncate unused fields? 
 
-            // Allocate output buffer
-            var buffer = new Buffer<byte>(outputBufferSize);
-            // TODO: buffer overrun
-            // Iterate through each properties serialized data to merge into one output array
+            // Resize buffer if required
+            if (buffer.Writable < outputBufferSize) {
+                buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + outputBufferSize));
+            }
 
+            // Iterate through each properties serialized data to merge into one output array
             for (var i = 0; i <= maxPropertyIndex; i++) {
                 var propertySerialized = propertiesSerialized[i];
 
@@ -175,298 +275,20 @@ namespace InvertedTomato.LightWeightSerialization {
                 }
             }
 
-            return buffer.ToArray();
+            return buffer;
         }
 
-        private byte[] SerializeBool(bool input) {
-            if (!input) {
-                return new byte[] { };
-            }
-
-            return new byte[] { byte.MaxValue };
-        }
-
-        private byte[] SerializeSInt8(sbyte input) {
-            if (input == 0) {
-                return new byte[] { };
-            }
-
-            return new byte[] { (byte)input };
-        }
-        private byte[] SerializeSInt16(short input) {
-            if (input <= sbyte.MaxValue && input >= sbyte.MinValue) {
-                return Serialize((sbyte)input);
-            }
-
-            return BitConverter.GetBytes(input);
-        }
-        private byte[] SerializeSInt32(int input) {
-            if (input <= short.MaxValue && input >= short.MinValue) {
-                return Serialize((short)input);
-            }
-
-            return BitConverter.GetBytes(input);
-        }
-        private byte[] SerializeSInt64(long input) {
-            if (input <= int.MaxValue && input >= int.MinValue) {
-                return Serialize((int)input);
-            }
-
-            return BitConverter.GetBytes(input);
-        }
-
-        private byte[] SerializeUInt8(byte input) {
-            if (input == 0) {
-                return new byte[] { };
-            }
-
-            return new byte[] { input };
-        }
-        private byte[] SerializeUInt16(ushort input) {
-            if (input <= byte.MaxValue && input >= byte.MinValue) {
-                return Serialize((byte)input);
-            }
-
-            return BitConverter.GetBytes(input);
-        }
-        private byte[] SerializeUInt32(uint input) {
-            if (input <= byte.MaxValue && input >= byte.MinValue) {
-                return Serialize((byte)input);
-            }
-            if (input <= ushort.MaxValue && input >= ushort.MinValue) {
-                return Serialize((ushort)input);
-            }
-
-            return BitConverter.GetBytes(input);
-        }
-        private byte[] SerializeUInt64(ulong input) {
-            if (input <= byte.MaxValue && input >= byte.MinValue) {
-                return Serialize((byte)input);
-            }
-            if (input <= ushort.MaxValue && input >= ushort.MinValue) {
-                return Serialize((ushort)input);
-            }
-            if (input <= uint.MaxValue && input >= uint.MinValue) {
-                return Serialize((uint)input);
-            }
-
-            return BitConverter.GetBytes(input);
-        }
-
-        private byte[] SerializeString(string input) {
-            if (null == input) {
-                return new byte[] { };
-            }
-
-            return Encoding.UTF8.GetBytes(input);
-        }
-
-        private byte[] SerializeBoolArray(bool[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 2); // TRUE is the largest possible value, which encodes as 2 bytes
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-                /*
-                // Increase buffer size if needed
-                if (buffer.Available < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Used + serialized.Length + 10)); // 10 is arbitary
-                }
-                */
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-
-        private byte[] SerializeSInt8Array(sbyte[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 2);
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-        private byte[] SerializeSInt16Array(short[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 3);
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-        private byte[] SerializeSInt32Array(int[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 5);
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-        private byte[] SerializeSInt64Array(long[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 9);
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-
-        private byte[] SerializeUInt8Array(byte[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 2); // Longest possible value is 2 bytes (length + paylaod)
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-        private byte[] SerializeUInt16Array(ushort[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 3); // Longest possible value is 3 bytes
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-        private byte[] SerializeUInt32Array(uint[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 5); // Longest possible value is 5 bytes
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-        private byte[] SerializeUInt64Array(ulong[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 9); // Longest possible value is 9 bytes
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-
-        private byte[] SerializeStringArray(string[] input) {
-
-            var buffer = new Buffer<byte>(input.Length * 8); // Arbitary guess at average string length
-
-            // Iterate through each element
-            foreach (var subinput in input) {
-                // Serialize element
-                var serialized = Serialize(subinput);
-
-                // Increase buffer size if needed
-                if (buffer.Writable < serialized.Length + 10) {
-                    buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + serialized.Length + 10)); // 10 is arbitary
-                }
-
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
-
-                // Append encoded bytes
-                buffer.EnqueueArray(serialized);
-            }
-
-            return buffer.ToArray();
-        }
-
-
-        public T Deserialize<T>(byte[] payload) {
+        public static T Deserialize<T>(byte[] payload) {
             if (null == payload) {
                 throw new ArgumentNullException("payload");
             }
 
             return (T)Deserialize(new Buffer<byte>(payload), typeof(T));
         }
-        public T Deserialize<T>(Buffer<byte> payload) {
+        public static T Deserialize<T>(Buffer<byte> payload) {
             return (T)Deserialize(payload, typeof(T));
         }
-        public object Deserialize(Buffer<byte> payload, Type type) {
+        private static object Deserialize(Buffer<byte> payload, Type type) {
             if (null == payload) {
                 throw new ArgumentNullException("payload");
             }
@@ -510,42 +332,38 @@ namespace InvertedTomato.LightWeightSerialization {
 
 
 
-
-
-            if (type == typeof(bool[])) { // Bool array
-                return DeserializeBoolArray(payload);
+            if (type == typeof(IDictionary)) {
+                return DeserializeDictionary(payload);
+            }
+            if (type == typeof(IEnumerable)) {
+                return DeserializeEnumerable(payload);
             }
 
-            if (type == typeof(sbyte[])) { // SInt8 array
-                return DeserializeSInt8Array(payload);
-            }
-            if (type == typeof(short[])) { // SInt16 array
-                return DeserializeSInt16Array(payload);
-            }
-            if (type == typeof(int[])) { // SInt32 array
-                return DeserializeSInt32Array(payload);
-            }
-            if (type == typeof(long[])) { // SInt64 array
-                return DeserializeSInt64Array(payload);
+            return DeserializeObject(type, payload);
+
+        }
+
+        private static object DeserializeDictionary(Buffer<byte> payload) {
+            throw new NotImplementedException();
+        }
+
+        private static object DeserializeEnumerable(Buffer<byte> payload) {
+            var output = new List<string>();
+            var lengthBuffer = new Buffer<ulong>(1);
+            while (payload.IsReadable) {
+                // Get the length in a usable format
+                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
+                var length = (int)lengthBuffer.Dequeue();
+                lengthBuffer.Reset();
+
+                // Deserialize element
+                output.Add(DeserializeString(payload.DequeueBuffer(length)));
             }
 
-            if (type == typeof(byte[])) { // UInt8 array
-                return DeserializeUInt8Array(payload);
-            }
-            if (type == typeof(ushort[])) { // UInt16 array
-                return DeserializeUInt16Array(payload);
-            }
-            if (type == typeof(uint[])) { // UInt32 array
-                return DeserializeUInt32Array(payload);
-            }
-            if (type == typeof(ulong[])) { // UInt64 array
-                return DeserializeUInt64Array(payload);
-            }
+            return output.ToArray();
+        }
 
-            if (type == typeof(string[])) { // String array
-                return DeserializeStringArray(payload);
-            }
-
+        private static object DeserializeObject(Type type, Buffer<byte> payload) {
             // Instantiate output object
             var output = Activator.CreateInstance(type);
 
@@ -585,8 +403,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return output;
         }
 
-
-        private bool DeserializeBool(Buffer<byte> payload) {
+        private static bool DeserializeBool(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -604,7 +421,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return true;
         }
 
-        private sbyte DeserializeSInt8(Buffer<byte> payload) {
+        private static sbyte DeserializeSInt8(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -615,7 +432,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("SInt8 values can be 0 or 1 bytes.");
             }
         }
-        private short DeserializeSInt16(Buffer<byte> payload) {
+        private static short DeserializeSInt16(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -627,7 +444,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("SInt16 values can be 0, 1, or 2 bytes.");
             }
         }
-        private int DeserializeSInt32(Buffer<byte> payload) {
+        private static int DeserializeSInt32(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -640,7 +457,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }
-        private long DeserializeSInt64(Buffer<byte> payload) {
+        private static long DeserializeSInt64(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -655,7 +472,7 @@ namespace InvertedTomato.LightWeightSerialization {
             }
         }
 
-        private byte DeserializeUInt8(Buffer<byte> payload) {
+        private static byte DeserializeUInt8(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -666,7 +483,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("UInt8 values can be 0 or 1 bytes.");
             }
         }
-        private ushort DeserializeUInt16(Buffer<byte> payload) {
+        private static ushort DeserializeUInt16(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -678,7 +495,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("UInt16 values can be 0, 1, or 2 bytes.");
             }
         }
-        private uint DeserializeUInt32(Buffer<byte> payload) {
+        private static uint DeserializeUInt32(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -691,7 +508,7 @@ namespace InvertedTomato.LightWeightSerialization {
                 default: throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }
-        private ulong DeserializeUInt64(Buffer<byte> payload) {
+        private static ulong DeserializeUInt64(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -706,7 +523,7 @@ namespace InvertedTomato.LightWeightSerialization {
             }
         }
 
-        private string DeserializeString(Buffer<byte> payload) {
+        private static string DeserializeString(Buffer<byte> payload) {
             if (null == payload) {
                 throw new ArgumentNullException("input");
             }
@@ -716,161 +533,6 @@ namespace InvertedTomato.LightWeightSerialization {
 
             // Decode using UTF8
             return Encoding.UTF8.GetString(raw, 0, raw.Length);
-        }
-
-
-        private bool[] DeserializeBoolArray(Buffer<byte> payload) {
-            var output = new List<bool>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeBool(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-
-        private sbyte[] DeserializeSInt8Array(Buffer<byte> payload) {
-            var output = new List<sbyte>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeSInt8(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-        private short[] DeserializeSInt16Array(Buffer<byte> payload) {
-            var output = new List<short>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeSInt16(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-        private int[] DeserializeSInt32Array(Buffer<byte> payload) {
-            var output = new List<int>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeSInt32(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-        private long[] DeserializeSInt64Array(Buffer<byte> payload) {
-            var output = new List<long>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeSInt64(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-
-        private byte[] DeserializeUInt8Array(Buffer<byte> payload) {
-            var output = new List<byte>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeUInt8(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-        private ushort[] DeserializeUInt16Array(Buffer<byte> payload) {
-            var output = new List<ushort>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeUInt16(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-        private uint[] DeserializeUInt32Array(Buffer<byte> payload) {
-            var output = new List<uint>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeUInt32(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-        private ulong[] DeserializeUInt64Array(Buffer<byte> payload) {
-            var output = new List<ulong>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeUInt64(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
-        }
-
-        private string[] DeserializeStringArray(Buffer<byte> payload) {
-            var output = new List<string>();
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(DeserializeString(payload.DequeueBuffer(length)));
-            }
-
-            return output.ToArray();
         }
     }
 }

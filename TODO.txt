@@ -1,0 +1,4 @@
+ - Add IEnumerable+IDictionary deserialization
+ - Add IEnumerable+IDictionary unit tests
+ - Test for things that shouldn't be serializable.
+ - Add ISerializable support?
