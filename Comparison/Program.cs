@@ -1,12 +1,17 @@
-﻿using InvertedTomato.LightWeightSerialization;
+﻿using CommonSerializer;
+using CommonSerializer.Jil;
+using CommonSerializer.MsgPack.Cli;
+using CommonSerializer.ProtobufNet;
+using InvertedTomato.LightWeightSerialization;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace Comparison {
     class Program {
-        public const ushort TOTAL_VERSES=31102;
+        public const ushort TOTAL_VERSES = 31102;
 
         static void Main(string[] args) {
             var bookNames = new string[] {
@@ -18,7 +23,7 @@ namespace Comparison {
             var inputBible = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(File.ReadAllText("esv.json"));
 
             // Open map file
-            var bible = new Segment[TOTAL_VERSES]; // TODO: Should be List<T>
+            var bible = new List<Segment>();
 
             ushort id = 0;
             using (var mapFile = File.CreateText("map.csv")) {
@@ -49,8 +54,8 @@ namespace Comparison {
                             mapFile.WriteLine(verseIdx);
 
                             // Compose bible
-                            bible[id] = (new Segment() {
-                                Mode = 1,
+                            bible.Add(new Segment() {
+                                Mode = 0,
                                 Content = verse
                             });
 
@@ -60,21 +65,45 @@ namespace Comparison {
                 }
             }
 
+            var protoBuffTimer = Stopwatch.StartNew();
+            File.WriteAllBytes("output.buff", (new ProtobufCommonSerializer()).SerializeToByteArray(bible));
+            protoBuffTimer.Stop();
+
+            var msgPackTimer = Stopwatch.StartNew();
+            File.WriteAllBytes("output.msg", (new MsgPackCommonSerializer()).SerializeToByteArray(bible));
+            msgPackTimer.Stop();
+
+            var jilTimer = Stopwatch.StartNew();
+            File.WriteAllBytes("output.jil", (new JilCommonSerializer()).SerializeToByteArray(bible));
+            jilTimer.Stop();
+
+            var jsonTimer = Stopwatch.StartNew();
             File.WriteAllText("output.json", JsonConvert.SerializeObject(bible));
+            jsonTimer.Stop();
+
+            var lwTimer = Stopwatch.StartNew();
             File.WriteAllBytes("output.lw", LightWeight.Serialize(bible));
+            lwTimer.Stop();
 
-            /*
-
-            var lw = Serializer.Serialize(bible);
-
-            Console.WriteLine("JSON: " + json.Length);
-            Console.WriteLine("LW:   " + lw.Length);
-            */
+            Console.WriteLine("Jil:       {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.jil").Length / 1024, jilTimer.ElapsedMilliseconds);
+            Console.WriteLine("JSON:      {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.json").Length / 1024, jsonTimer.ElapsedMilliseconds);
+            Console.WriteLine("ProtoBuff: {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.buff").Length / 1024, protoBuffTimer.ElapsedMilliseconds);
+            Console.WriteLine("MsgPack:   {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.msg").Length / 1024, msgPackTimer.ElapsedMilliseconds);
+            Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.lw").Length / 1024, lwTimer.ElapsedMilliseconds);
 
             Console.WriteLine("Done.");
             Console.ReadKey(true);
         }
 
 
+    }
+
+    public static class Extensions {
+        public static byte[] SerializeToByteArray<T>(this ICommonSerializer target, T value) {
+            using (var stream = new MemoryStream()) {
+                target.Serialize(stream, value);
+                return stream.ToArray();
+            }
+        }
     }
 }

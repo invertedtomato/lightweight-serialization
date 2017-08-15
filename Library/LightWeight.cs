@@ -7,35 +7,35 @@ using System.Linq;
 using InvertedTomato.Compression.Integers;
 using System.Collections;
 
-/* TODO:
- - abort if type isn't serializable
- - add enumerable support?
- - datetime
- - timespan
- - convert to Stream?
- - test edge conditions
- - performance compare to protobuff+JSON
- - Use Buffer<byte> on serialize?
- - readme
-*/
-
 namespace InvertedTomato.LightWeightSerialization {
-    public static class LightWeight {
+    public class LightWeight {
         private const byte MSB = 0x80;
         private static readonly Type PropertyAttribute = typeof(LightWeightPropertyAttribute);
-        private static readonly VLQCodec Codec = new VLQCodec();
 
         public static byte[] Serialize<T>(T value) {
             if (null == value) {
                 return new byte[] { };
             }
 
+            var lw = new LightWeight();
             var buffer = new Buffer<byte>(8);
-            buffer = Serialize(value, value.GetType(), buffer);
+            buffer = lw.Serialize(value, value.GetType(), buffer);
             return buffer.ToArray();
         }
+        public static T Deserialize<T>(byte[] payload) {
+            if (null == payload) {
+                throw new ArgumentNullException("payload");
+            }
 
-        private static Buffer<byte> Serialize(object value, Type type, Buffer<byte> buffer) {
+            var lw = new LightWeight();
+            return (T)lw.Deserialize(new Buffer<byte>(payload), typeof(T));
+        }
+
+
+        private readonly VLQCodec Codec = new VLQCodec();
+        private readonly Buffer<ulong> LengthBuffer = new Buffer<ulong>(1);
+
+        public Buffer<byte> Serialize(object value, Type type, Buffer<byte> buffer) {
             // Serialize input to byte array
             if (value == null) { // Null
                 return SerializeNull(buffer);
@@ -85,13 +85,13 @@ namespace InvertedTomato.LightWeightSerialization {
                 return SerializeEnumerable(enu, buffer);
             }
 
-            return SerializeObject(value, type, buffer);
+            return SerializePOCO(value, type, buffer);
         }
 
-        private static Buffer<byte> SerializeNull(Buffer<byte> buffer) {
+        private Buffer<byte> SerializeNull(Buffer<byte> buffer) {
             return buffer;
         }
-        private static Buffer<byte> SerializeBool(bool input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeBool(bool input, Buffer<byte> buffer) {
             if (!input) {
                 return buffer;
             }
@@ -99,28 +99,28 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.EnqueueArrayWithResize(new byte[] { byte.MaxValue });
         }
 
-        private static Buffer<byte> SerializeSInt8(sbyte input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeSInt8(sbyte input, Buffer<byte> buffer) {
             if (input == 0) {
                 return buffer;
             }
 
             return buffer.EnqueueArrayWithResize(new byte[] { (byte)input });
         }
-        private static Buffer<byte> SerializeSInt16(short input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeSInt16(short input, Buffer<byte> buffer) {
             if (input <= sbyte.MaxValue && input >= sbyte.MinValue) {
                 return SerializeSInt8((sbyte)input, buffer);
             } else {
                 return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
             }
         }
-        private static Buffer<byte> SerializeSInt32(int input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeSInt32(int input, Buffer<byte> buffer) {
             if (input <= short.MaxValue && input >= short.MinValue) {
                 return SerializeSInt16((short)input, buffer);
             }
 
             return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
         }
-        private static Buffer<byte> SerializeSInt64(long input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeSInt64(long input, Buffer<byte> buffer) {
             if (input <= int.MaxValue && input >= int.MinValue) {
                 return SerializeSInt32((int)input, buffer);
             }
@@ -128,28 +128,28 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
         }
 
-        private static Buffer<byte> SerializeUInt8(byte input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeUInt8(byte input, Buffer<byte> buffer) {
             if (input == 0) {
                 return buffer;
             }
 
             return buffer.EnqueueArrayWithResize(new byte[] { input });
         }
-        private static Buffer<byte> SerializeUInt16(ushort input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeUInt16(ushort input, Buffer<byte> buffer) {
             if (input <= byte.MaxValue && input >= byte.MinValue) {
                 return SerializeUInt8((byte)input, buffer);
             }
 
             return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
         }
-        private static Buffer<byte> SerializeUInt32(uint input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeUInt32(uint input, Buffer<byte> buffer) {
             if (input <= ushort.MaxValue && input >= ushort.MinValue) {
                 return SerializeUInt16((ushort)input, buffer);
             }
 
             return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
         }
-        private static Buffer<byte> SerializeUInt64(ulong input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeUInt64(ulong input, Buffer<byte> buffer) {
             if (input <= uint.MaxValue && input >= uint.MinValue) {
                 return SerializeUInt32((uint)input, buffer);
             }
@@ -157,7 +157,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.EnqueueArrayWithResize(BitConverter.GetBytes(input));
         }
 
-        private static Buffer<byte> SerializeString(string input, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeString(string input, Buffer<byte> buffer) {
             if (null == input) {
                 return buffer;
             }
@@ -165,7 +165,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.EnqueueArrayWithResize(Encoding.UTF8.GetBytes(input));
         }
 
-        private static Buffer<byte> SerializeEnumerable(IEnumerable value, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeEnumerable(IEnumerable value, Buffer<byte> buffer) {
             // Iterate through each element
             foreach (var subinput in value) {
                 // Serialize element
@@ -186,7 +186,7 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer;
         }
-        private static Buffer<byte> SerializeDictionary(IDictionary value, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeDictionary(IDictionary value, Buffer<byte> buffer) {
             // Enumerate all values
             var e = value.GetEnumerator();
             while (e.MoveNext()) {
@@ -210,7 +210,7 @@ namespace InvertedTomato.LightWeightSerialization {
 
             return buffer;
         }
-        private static Buffer<byte> SerializeObject(object value, Type type, Buffer<byte> buffer) {
+        private Buffer<byte> SerializePOCO(object value, Type type, Buffer<byte> buffer) {
 
             // Iterate through each property,
             var propertiesSerialized = new byte[byte.MaxValue][];
@@ -278,17 +278,8 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer;
         }
 
-        public static T Deserialize<T>(byte[] payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("payload");
-            }
 
-            return (T)Deserialize(new Buffer<byte>(payload), typeof(T));
-        }
-        public static T Deserialize<T>(Buffer<byte> payload) {
-            return (T)Deserialize(payload, typeof(T));
-        }
-        private static object Deserialize(Buffer<byte> payload, Type type) {
+        public object Deserialize(Buffer<byte> payload, Type type) {
             if (null == payload) {
                 throw new ArgumentNullException("payload");
             }
@@ -331,24 +322,138 @@ namespace InvertedTomato.LightWeightSerialization {
             }
 
 
-
-            if (type == typeof(IDictionary)) {
+            if (type.IsArray) {
+                return DeserializeArray(type.GetElementType(), payload);
+            }
+            if (type.GetTypeInfo().IsAssignableFrom(typeof(IDictionary).GetTypeInfo())) {
                 return DeserializeDictionary(payload);
             }
-            if (type == typeof(IEnumerable)) {
-                return DeserializeEnumerable(payload);
+            if (type.GetTypeInfo().IsAssignableFrom(typeof(IEnumerable).GetTypeInfo())) {
+                return DeserializeEnumerable(type, payload);
             }
 
-            return DeserializeObject(type, payload);
+            return DeserializePOCO(type, payload);
 
         }
 
-        private static object DeserializeDictionary(Buffer<byte> payload) {
+        private bool DeserializeBool(Buffer<byte> payload) {
+            if (payload.Readable == 0) {
+                return false;
+            }
+#if DEBUG
+            if (payload.Readable > 1) {
+                throw new DataFormatException("Boolean values can be no more than 1 byte long.");
+            }
+            if (payload.Dequeue() != byte.MaxValue) {
+                throw new DataFormatException("Boolean values cannot be anything other than 0xFF.");
+            }
+#endif
+
+            return true;
+        }
+
+        private sbyte DeserializeSInt8(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return (sbyte)payload.Dequeue();
+                default: throw new DataFormatException("SInt8 values can be 0 or 1 bytes.");
+            }
+        }
+        private short DeserializeSInt16(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                default: throw new DataFormatException("SInt16 values can be 0, 1, or 2 bytes.");
+            }
+        }
+        private int DeserializeSInt32(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0); // Possible to optimise
+                case 4: return BitConverter.ToInt32(payload.DequeueBuffer(4).ToArray(), 0);
+                default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
+            }
+        }
+        private long DeserializeSInt64(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                case 4: return BitConverter.ToInt32(payload.DequeueBuffer(4).ToArray(), 0);
+                case 8: return BitConverter.ToInt64(payload.DequeueBuffer(8).ToArray(), 0);
+                default: throw new DataFormatException("SInt64 values can be 0, 1, 2, 4 or 8 bytes.");
+            }
+        }
+
+        private byte DeserializeUInt8(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                default: throw new DataFormatException("UInt8 values can be 0 or 1 bytes.");
+            }
+        }
+        private ushort DeserializeUInt16(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                default: throw new DataFormatException("UInt16 values can be 0, 1, or 2 bytes.");
+            }
+        }
+        private uint DeserializeUInt32(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                case 4: return BitConverter.ToUInt32(payload.DequeueBuffer(4).ToArray(), 0);
+                default: throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
+            }
+        }
+        private ulong DeserializeUInt64(Buffer<byte> payload) {
+            switch (payload.Readable) {
+                case 0: return 0;
+                case 1: return payload.Dequeue();
+                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
+                case 4: return BitConverter.ToUInt32(payload.DequeueBuffer(4).ToArray(), 0);
+                case 8: return BitConverter.ToUInt64(payload.DequeueBuffer(8).ToArray(), 0);
+                default: throw new DataFormatException("UInt64 values can be 0, 1, 2, 4 or 8 bytes.");
+            }
+        }
+
+        private string DeserializeString(Buffer<byte> payload) {
+            // Get raw bytes
+            var raw = payload.DequeueBuffer(payload.Readable).ToArray(); // Possible to optimise
+
+            // Decode using UTF8
+            return Encoding.UTF8.GetString(raw, 0, raw.Length);
+        }
+
+        private Array DeserializeArray(Type innerType, Buffer<byte> payload) {
+            // Create temporary container list while elements are being deserialized
+            var container = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(innerType));
+
+            // Deserialize items
+            while (payload.IsReadable) {
+                // Get the length in a usable format
+                Codec.DecompressUnsignedBuffer(payload, LengthBuffer);
+                var length = (int)LengthBuffer.Dequeue();
+                LengthBuffer.Reset();
+
+                // Deserialize element
+                container.Add(Deserialize(payload.DequeueBuffer(length), innerType));
+            }
+
+            // Create output array and populate with items
+            var output = Array.CreateInstance(innerType, container.Count);
+            container.CopyTo(output, 0);
+            return output;
+        }
+        private IEnumerable DeserializeEnumerable(Type type, Buffer<byte> payload) {
             throw new NotImplementedException();
-        }
-
-        private static object DeserializeEnumerable(Buffer<byte> payload) {
-            var output = new List<string>();
+            /*
+            var output = (IEnumerable)Activator.CreateInstance(type);
             var lengthBuffer = new Buffer<ulong>(1);
             while (payload.IsReadable) {
                 // Get the length in a usable format
@@ -357,13 +462,15 @@ namespace InvertedTomato.LightWeightSerialization {
                 lengthBuffer.Reset();
 
                 // Deserialize element
-                output.Add(DeserializeString(payload.DequeueBuffer(length)));
+                output.Add(Deserialize(payload.DequeueBuffer(length), type.GetElementType()));
             }
 
-            return output.ToArray();
+            return output;*/
         }
-
-        private static object DeserializeObject(Type type, Buffer<byte> payload) {
+        private IDictionary DeserializeDictionary(Buffer<byte> payload) {
+            throw new NotImplementedException();
+        }
+        private object DeserializePOCO(Type type, Buffer<byte> payload) {
             // Instantiate output object
             var output = Activator.CreateInstance(type);
 
@@ -401,138 +508,6 @@ namespace InvertedTomato.LightWeightSerialization {
             }
 
             return output;
-        }
-
-        private static bool DeserializeBool(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            if (payload.Readable == 0) {
-                return false;
-            }
-            if (payload.Readable > 1) {
-                throw new DataFormatException("Boolean values can be no more than 1 byte long.");
-            }
-            if (payload.Dequeue() != byte.MaxValue) {
-                throw new DataFormatException("Boolean values cannot be anything other than 0xFF.");
-            }
-
-            return true;
-        }
-
-        private static sbyte DeserializeSInt8(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return (sbyte)payload.Dequeue();
-                default: throw new DataFormatException("SInt8 values can be 0 or 1 bytes.");
-            }
-        }
-        private static short DeserializeSInt16(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
-                default: throw new DataFormatException("SInt16 values can be 0, 1, or 2 bytes.");
-            }
-        }
-        private static int DeserializeSInt32(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0); // Possible to optimise
-                case 4: return BitConverter.ToInt32(payload.DequeueBuffer(4).ToArray(), 0);
-                default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
-            }
-        }
-        private static long DeserializeSInt64(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                case 2: return BitConverter.ToInt16(payload.DequeueBuffer(2).ToArray(), 0);
-                case 4: return BitConverter.ToInt32(payload.DequeueBuffer(4).ToArray(), 0);
-                case 8: return BitConverter.ToInt64(payload.DequeueBuffer(8).ToArray(), 0);
-                default: throw new DataFormatException("SInt64 values can be 0, 1, 2, 4 or 8 bytes.");
-            }
-        }
-
-        private static byte DeserializeUInt8(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                default: throw new DataFormatException("UInt8 values can be 0 or 1 bytes.");
-            }
-        }
-        private static ushort DeserializeUInt16(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
-                default: throw new DataFormatException("UInt16 values can be 0, 1, or 2 bytes.");
-            }
-        }
-        private static uint DeserializeUInt32(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
-                case 4: return BitConverter.ToUInt32(payload.DequeueBuffer(4).ToArray(), 0);
-                default: throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
-            }
-        }
-        private static ulong DeserializeUInt64(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            switch (payload.Readable) {
-                case 0: return 0;
-                case 1: return payload.Dequeue();
-                case 2: return BitConverter.ToUInt16(payload.DequeueBuffer(2).ToArray(), 0);
-                case 4: return BitConverter.ToUInt32(payload.DequeueBuffer(4).ToArray(), 0);
-                case 8: return BitConverter.ToUInt64(payload.DequeueBuffer(8).ToArray(), 0);
-                default: throw new DataFormatException("UInt64 values can be 0, 1, 2, 4 or 8 bytes.");
-            }
-        }
-
-        private static string DeserializeString(Buffer<byte> payload) {
-            if (null == payload) {
-                throw new ArgumentNullException("input");
-            }
-
-            // Get raw bytes
-            var raw = payload.DequeueBuffer(payload.Readable).ToArray(); // Possible to optimise
-
-            // Decode using UTF8
-            return Encoding.UTF8.GetString(raw, 0, raw.Length);
         }
     }
 }
