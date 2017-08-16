@@ -26,7 +26,7 @@ namespace Comparison {
             var bible = new List<Segment>();
 
             ushort id = 0;
-            using (var mapFile = File.CreateText("map.csv")) {
+            using (var mapFile = File.CreateText("output.map")) {
                 mapFile.AutoFlush = true;
                 mapFile.WriteLine("id,book,chapter,verse");
 
