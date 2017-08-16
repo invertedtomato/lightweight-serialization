@@ -424,20 +424,21 @@ namespace InvertedTomato.LightWeightSerialization {
         }
 
         private string DeserializeString(Buffer<byte> payload) {
-            // Get raw bytes
-            var raw = payload.DequeueBuffer(payload.Readable).ToArray(); // Possible to optimise
+            // Get sub buffer
+            var b = payload.DequeueBuffer(payload.Readable); // Possible to optimise
 
             // Decode using UTF8
-            return Encoding.UTF8.GetString(raw, 0, raw.Length);
+            return Encoding.UTF8.GetString(b.ToArray(), 0, b.Readable);
         }
 
         private Array DeserializeArray(Type innerType, Buffer<byte> payload) {
-            // Create temporary container list while elements are being deserialized
+            // Deserialize temporarily as list
             var container = DeserializeList(innerType, payload);
 
-            // Create output array and populate with items
+            // Convert to array and return
             var output = Array.CreateInstance(innerType, container.Count);
             container.CopyTo(output, 0);
+
             return output;
         }
         private IList DeserializeList(Type innerType, Buffer<byte> payload) {
@@ -446,54 +447,51 @@ namespace InvertedTomato.LightWeightSerialization {
 
             // Deserialize items
             while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, LengthBuffer);
-                var length = (int)LengthBuffer.Dequeue();
-                LengthBuffer.Reset();
+                // Deserialize value
+                var l = (int)Codec.DecompressUnsigned(payload);
+                var b = payload.DequeueBuffer(l);
+                var v = Deserialize(b, innerType);
 
-                // Deserialize element
-                output.Add(Deserialize(payload.DequeueBuffer(length), innerType));
+                // Add to output
+                output.Add(v);
             }
 
             return output;
         }
         private IDictionary DeserializeDictionary(Type keyType, Type valueType, Buffer<byte> payload) {
-            // Instantiate list
+            // Instantiate dictionary
             var output = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(keyType, valueType));
 
-            // Deserialize items
+            // Loop through input buffer until depleated
             while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, LengthBuffer);
-                var length = (int)LengthBuffer.Dequeue();
-                LengthBuffer.Reset();
-                var k = Deserialize(payload.DequeueBuffer(length),keyType);
+                // Deserialize key
+                var kl = (int)Codec.DecompressUnsigned(payload);
+                var kb = payload.DequeueBuffer(kl);
+                var k = Deserialize(kb, keyType);
 
-                Codec.DecompressUnsignedBuffer(payload, LengthBuffer);
-                 length = (int)LengthBuffer.Dequeue();
-                LengthBuffer.Reset();
-                var v = Deserialize(payload.DequeueBuffer(length), valueType);
+                // Deserialize value
+                var vl = (int)Codec.DecompressUnsigned(payload);
+                var vb = payload.DequeueBuffer(vl);
+                var v = Deserialize(vb, valueType);
 
-                // Deserialize element
+                // Add to output
                 output[k] = v;
             }
 
             return output;
         }
         private object DeserializePOCO(Type type, Buffer<byte> payload) {
-            // Instantiate output object
+            // Instantiate output
             var output = Activator.CreateInstance(type);
 
             // Prepare for object deserialization
-            var lengthBuffer = new Buffer<ulong>(1);
             var index = -1;
 
             // Attempt to read field length, if we've reached the end of the payload, abort
             while (payload.IsReadable) {
                 // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
+                var l = (int)Codec.DecompressUnsigned(payload);
+                var b = payload.DequeueBuffer(l);
 
                 // Increment the index
                 index++;
@@ -501,19 +499,19 @@ namespace InvertedTomato.LightWeightSerialization {
                 // Iterate through each property looking for one that matches index
                 foreach (var property in type.GetRuntimeProperties()) {
                     // Get property attribute which tells us the properties' index
-                    var lightWeightProperty = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute);
+                    var attribute = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute);
 
                     // Skip if not found, or index doesn't match
-                    if (null == lightWeightProperty || lightWeightProperty.Index != index) {
+                    if (null == attribute || attribute.Index != index) {
                         // No attribute found, skip
                         continue;
                     }
 
-                    // Decode value
-                    var value = Deserialize(payload.DequeueBuffer(length), property.PropertyType);
+                    // Deserialize value
+                    var v = Deserialize(b, property.PropertyType);
 
                     // Set it on property
-                    property.SetValue(output, value);
+                    property.SetValue(output, v);
                 }
             }
 
