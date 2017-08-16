@@ -292,7 +292,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Serialize_List() {
+    public void Serialize_List_SInt32() {
         var serialized = LightWeight.Serialize(new List<int>() { 1, 2, 3 });
 
         Assert.Equal(new byte[] {
@@ -304,7 +304,23 @@ public class LightWeightTests {
                 0x03 // 3
         }, serialized);
     }
+    [Fact]
+    public void Serialize_Dict_SInt32_String() {
+        var serialized = LightWeight.Serialize(new Dictionary<int, string>() {
+            {1, "a" },
+            {2, "b" },
+            {3, "c" }
+        });
 
+        Assert.Equal(new byte[] {
+            0x81, 0x01, // 1 =
+            0x81, (byte)'a', // 'a'
+            0x81, 0x02, // 2 =
+            0x81, (byte)'b', // 'b'
+            0x81, 0x03, // 3 =
+            0x81, (byte)'c' // 'c'
+        }, serialized);
+    }
 
     [Fact]
     public void Deserialize_Boolean_False() {
@@ -575,7 +591,7 @@ public class LightWeightTests {
 
 
     [Fact]
-    public void Deserialize_List() {
+    public void Deserialize_List_SInt32() {
         var result = LightWeight.Deserialize<List<int>>(new byte[] {
             0x81, // [0]
                 0x01, // 1
@@ -588,5 +604,22 @@ public class LightWeightTests {
         });
 
         Assert.Equal(new List<int>() { 1, 2, 255, 3 }, result);
+    }
+    [Fact]
+    public void Deserialize_Dict_SInt32_String() {
+        var result = LightWeight.Deserialize<Dictionary<int, string>>(new byte[] {
+            0x81, 0x01, // 1 =
+            0x81, (byte)'a', // 'a'
+            0x81, 0x02, // 2 =
+            0x81, (byte)'b', // 'b'
+            0x81, 0x03, // 3 =
+            0x81, (byte)'c' // 'c'
+        });
+
+        Assert.Equal(new Dictionary<int, string>() {
+            {1, "a" },
+            {2, "b" },
+            {3, "c" }
+        }, result);
     }
 }

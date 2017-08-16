@@ -195,16 +195,17 @@ namespace InvertedTomato.LightWeightSerialization {
                 var v = Serialize(e.Value);
 
                 // Resize buffer if required
-                var space = 10 + k.Length + v.Length; // 10 is for length header
+                var space = 10 + 10 + k.Length + v.Length; // 10 is for length header
                 if (buffer.Writable < space) {
                     buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + space));
                 }
 
-                // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)k.Length + (ulong)v.Length }), buffer);
-
-                // Append serialized data
+                // Write key
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)k.Length }), buffer);
                 buffer.EnqueueArray(k);
+
+                // Write value
+                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)v.Length }), buffer);
                 buffer.EnqueueArray(v);
             }
 
@@ -457,7 +458,27 @@ namespace InvertedTomato.LightWeightSerialization {
             return output;
         }
         private IDictionary DeserializeDictionary(Type keyType, Type valueType, Buffer<byte> payload) {
-            throw new NotImplementedException();
+            // Instantiate list
+            var output = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(keyType, valueType));
+
+            // Deserialize items
+            while (payload.IsReadable) {
+                // Get the length in a usable format
+                Codec.DecompressUnsignedBuffer(payload, LengthBuffer);
+                var length = (int)LengthBuffer.Dequeue();
+                LengthBuffer.Reset();
+                var k = Deserialize(payload.DequeueBuffer(length),keyType);
+
+                Codec.DecompressUnsignedBuffer(payload, LengthBuffer);
+                 length = (int)LengthBuffer.Dequeue();
+                LengthBuffer.Reset();
+                var v = Deserialize(payload.DequeueBuffer(length), valueType);
+
+                // Deserialize element
+                output[k] = v;
+            }
+
+            return output;
         }
         private object DeserializePOCO(Type type, Buffer<byte> payload) {
             // Instantiate output object
