@@ -1,4 +1,4 @@
-﻿using InvertedTomato.LightWeightSerialization;
+﻿using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
 using ProtoBuf;
 using System.Runtime.Serialization;

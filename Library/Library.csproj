@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard1.0</TargetFramework>
     <AssemblyName>InvertedTomato.LightWeightSerialization.Library</AssemblyName>
-    <RootNamespace>InvertedTomato.LightWeightSerialization</RootNamespace>
+    <RootNamespace>InvertedTomato.Serialization</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

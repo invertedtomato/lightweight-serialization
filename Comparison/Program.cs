@@ -2,7 +2,7 @@
 using CommonSerializer.Jil;
 using CommonSerializer.MsgPack.Cli;
 using CommonSerializer.ProtobufNet;
-using InvertedTomato.LightWeightSerialization;
+using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

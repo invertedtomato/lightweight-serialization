@@ -7,8 +7,8 @@ using System.Linq;
 using InvertedTomato.Compression.Integers;
 using System.Collections;
 
-namespace InvertedTomato.LightWeightSerialization {
-    public class LightWeight {
+namespace InvertedTomato.Serialization.LightWeightSerialization {
+    public class LightWeight:ISerializer {
         private static readonly byte[] MSB = new byte[] { 0x80 };
         private static readonly Type PropertyAttribute = typeof(LightWeightPropertyAttribute);
 

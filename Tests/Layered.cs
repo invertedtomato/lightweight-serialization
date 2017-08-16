@@ -1,4 +1,4 @@
-﻿using InvertedTomato.LightWeightSerialization;
+﻿using InvertedTomato.Serialization.LightWeightSerialization;
 
 class Layered {
     [LightWeightProperty(0)]

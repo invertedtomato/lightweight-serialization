@@ -1,6 +1,4 @@
-﻿using InvertedTomato.IO.Bits;
-using InvertedTomato.LightWeightSerialization;
-using System;
+﻿using InvertedTomato.Serialization.LightWeightSerialization;
 using System.Collections.Generic;
 using Xunit;
 

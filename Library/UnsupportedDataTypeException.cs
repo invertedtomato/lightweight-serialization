@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace InvertedTomato.LightWeightSerialization {
+namespace InvertedTomato.Serialization.LightWeightSerialization {
     public class UnsupportedDataTypeException : Exception {
         public UnsupportedDataTypeException() { }
         public UnsupportedDataTypeException(string message) : base(message) { }

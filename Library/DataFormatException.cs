@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace InvertedTomato.LightWeightSerialization {
+namespace InvertedTomato.Serialization {
     public class DataFormatException : Exception {
         public DataFormatException() { }
         public DataFormatException(string message) : base(message) { }

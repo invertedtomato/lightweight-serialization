@@ -1,4 +1,4 @@
-﻿namespace InvertedTomato.LightWeightSerialization {
+﻿namespace InvertedTomato.Serialization.LightWeightSerialization {
     public class LightWeightOptions {
         /// <summary>
         /// The buffer size when initially allocated.
