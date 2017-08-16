@@ -169,19 +169,19 @@ namespace InvertedTomato.LightWeightSerialization {
             // Iterate through each element
             foreach (var subinput in value) {
                 // Serialize element
-                var serialized = Serialize(subinput);
+                var v = Serialize(subinput);
 
                 // Resize buffer if required
-                var space = 10 + serialized.Length; // 10 is for length header
+                var space = 10 + v.Length; // 10 is for length header
                 if (buffer.Writable < space) {
                     buffer = buffer.Resize(Math.Max(buffer.Capacity * 2, buffer.Readable + space));
                 }
 
                 // Append VLQ-encoded length
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)serialized.Length }), buffer);
+                Codec.CompressUnsigned((ulong)v.Length , buffer);
 
                 // Append serialized bytes
-                buffer.EnqueueArray(serialized);
+                buffer.EnqueueArray(v);
             }
 
             return buffer;
@@ -201,11 +201,11 @@ namespace InvertedTomato.LightWeightSerialization {
                 }
 
                 // Write key
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)k.Length }), buffer);
+                Codec.CompressUnsigned((ulong)k.Length , buffer);
                 buffer.EnqueueArray(k);
 
                 // Write value
-                Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)v.Length }), buffer);
+                Codec.CompressUnsigned( (ulong)v.Length , buffer);
                 buffer.EnqueueArray(v);
             }
 
@@ -269,7 +269,7 @@ namespace InvertedTomato.LightWeightSerialization {
                     }
 
                     // Append VLQ-encoded length
-                    Codec.CompressUnsignedBuffer(new Buffer<ulong>(new ulong[] { (ulong)propertySerialized.Length }), buffer);
+                    Codec.CompressUnsigned((ulong)propertySerialized.Length, buffer);
 
                     // Append encoded bytes
                     buffer.EnqueueArray(propertySerialized);
