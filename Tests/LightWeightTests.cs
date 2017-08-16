@@ -1,6 +1,7 @@
 ﻿using InvertedTomato.IO.Bits;
 using InvertedTomato.LightWeightSerialization;
 using System;
+using System.Collections.Generic;
 using Xunit;
 
 public class LightWeightTests {
@@ -290,6 +291,20 @@ public class LightWeightTests {
         }, serialized);
     }
 
+    [Fact]
+    public void Serialize_List() {
+        var serialized = LightWeight.Serialize(new List<int>() { 1, 2, 3 });
+
+        Assert.Equal(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x81, // [2]
+                0x03 // 3
+        }, serialized);
+    }
+
 
     [Fact]
     public void Deserialize_Boolean_False() {
@@ -556,5 +571,22 @@ public class LightWeightTests {
         Assert.Equal(1, result.Z.A);
         Assert.Equal(9, result.Z.B);
         Assert.Equal(1000, result.Z.C);
+    }
+
+
+    [Fact]
+    public void Deserialize_List() {
+        var result = LightWeight.Deserialize<List<int>>(new byte[] {
+            0x81, // [0]
+                0x01, // 1
+            0x81, // [1]
+                0x02, // 2
+            0x81, // [3]
+                0xff, // 255
+            0x81, // [2]
+                0x03, // 3
+        });
+
+        Assert.Equal(new List<int>() { 1, 2, 255, 3 }, result);
     }
 }

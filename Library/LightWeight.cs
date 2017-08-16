@@ -80,9 +80,9 @@ namespace InvertedTomato.LightWeightSerialization {
                 return SerializeDictionary(dict, buffer);
             }
 
-            var enu = value as IEnumerable;
-            if (null != enu) {
-                return SerializeEnumerable(enu, buffer);
+            var list = value as IList;
+            if (null != list) {
+                return SerializeList(list, buffer);
             }
 
             return SerializePOCO(value, type, buffer);
@@ -165,7 +165,7 @@ namespace InvertedTomato.LightWeightSerialization {
             return buffer.EnqueueArrayWithResize(Encoding.UTF8.GetBytes(input));
         }
 
-        private Buffer<byte> SerializeEnumerable(IEnumerable value, Buffer<byte> buffer) {
+        private Buffer<byte> SerializeList(IList value, Buffer<byte> buffer) {
             // Iterate through each element
             foreach (var subinput in value) {
                 // Serialize element
@@ -325,11 +325,11 @@ namespace InvertedTomato.LightWeightSerialization {
             if (type.IsArray) {
                 return DeserializeArray(type.GetElementType(), payload);
             }
-            if (type.GetTypeInfo().IsAssignableFrom(typeof(IDictionary).GetTypeInfo())) {
-                return DeserializeDictionary(payload);
+            if (typeof(IList).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
+                return DeserializeList(type.GenericTypeArguments[0], payload);
             }
-            if (type.GetTypeInfo().IsAssignableFrom(typeof(IEnumerable).GetTypeInfo())) {
-                return DeserializeEnumerable(type, payload);
+            if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
+                return DeserializeDictionary(type.GenericTypeArguments[0], type.GenericTypeArguments[1], payload);
             }
 
             return DeserializePOCO(type, payload);
@@ -432,7 +432,16 @@ namespace InvertedTomato.LightWeightSerialization {
 
         private Array DeserializeArray(Type innerType, Buffer<byte> payload) {
             // Create temporary container list while elements are being deserialized
-            var container = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(innerType));
+            var container = DeserializeList(innerType, payload);
+
+            // Create output array and populate with items
+            var output = Array.CreateInstance(innerType, container.Count);
+            container.CopyTo(output, 0);
+            return output;
+        }
+        private IList DeserializeList(Type innerType, Buffer<byte> payload) {
+            // Instantiate list
+            var output = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(innerType));
 
             // Deserialize items
             while (payload.IsReadable) {
@@ -442,32 +451,12 @@ namespace InvertedTomato.LightWeightSerialization {
                 LengthBuffer.Reset();
 
                 // Deserialize element
-                container.Add(Deserialize(payload.DequeueBuffer(length), innerType));
+                output.Add(Deserialize(payload.DequeueBuffer(length), innerType));
             }
 
-            // Create output array and populate with items
-            var output = Array.CreateInstance(innerType, container.Count);
-            container.CopyTo(output, 0);
             return output;
         }
-        private IEnumerable DeserializeEnumerable(Type type, Buffer<byte> payload) {
-            throw new NotImplementedException();
-            /*
-            var output = (IEnumerable)Activator.CreateInstance(type);
-            var lengthBuffer = new Buffer<ulong>(1);
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                Codec.DecompressUnsignedBuffer(payload, lengthBuffer);
-                var length = (int)lengthBuffer.Dequeue();
-                lengthBuffer.Reset();
-
-                // Deserialize element
-                output.Add(Deserialize(payload.DequeueBuffer(length), type.GetElementType()));
-            }
-
-            return output;*/
-        }
-        private IDictionary DeserializeDictionary(Buffer<byte> payload) {
+        private IDictionary DeserializeDictionary(Type keyType, Type valueType, Buffer<byte> payload) {
             throw new NotImplementedException();
         }
         private object DeserializePOCO(Type type, Buffer<byte> payload) {
