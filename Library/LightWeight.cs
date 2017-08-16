@@ -215,74 +215,20 @@ namespace InvertedTomato.LightWeightSerialization {
             return;
         }
         private void SerializePOCO(object value, Type type) {
-            // Get properties
+            // Iterate properties
             var properties = _GetProperties(type);
-
             foreach (var property in properties) {
-
                 // If index was missed...
                 if (null == property) {
                     // Append stub byte
                     _EnqueueBuffer(MSB);
                 } else {
-                    var v = Serialize(property.GetValue(value, null)); ;
-
-                    // Append VLQ-encoded length
+                    // Serialize value
+                    var v = Serialize(property.GetValue(value, null));
                     _EnqueueLength(v.Length);
-
-                    // Append encoded bytes
                     _EnqueueBuffer(v);
                 }
             }
-            /*
-                        // Iterate through each property,
-                        var propertiesSerialized = new byte[byte.MaxValue][];
-                        var maxPropertyIndex = -1;
-                        var outputBufferSize = 0;
-                        foreach (var property in type.GetRuntimeProperties()) {
-                            // Get property attribute which tells us the properties' index
-                            var lightWeightProperty = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute, false);
-                            if (null == lightWeightProperty) {
-                                // No attribute found, skip
-                                continue;
-                            }
-
-                            // Check for duplicate index and abort if found
-                            if (null != propertiesSerialized[lightWeightProperty.Index]) {
-                                throw new InvalidOperationException("Duplicate key");
-                            }
-
-                            // Serialize property
-                            propertiesSerialized[lightWeightProperty.Index] = Serialize(property.GetValue(value, null));
-
-                            // Adjust max used index if needed
-                            if (lightWeightProperty.Index > maxPropertyIndex) {
-                                maxPropertyIndex = lightWeightProperty.Index;
-                            }
-
-                            // Take an educated guess how much buffer is required
-                            outputBufferSize += propertiesSerialized[lightWeightProperty.Index].Length + 4; // NOTE: this '4' is an arbitary number of spare bytes to fit the length header
-                        }
-
-                        // TODO: truncate unused fields? 
-
-                        // Iterate through each properties serialized data to merge into one output array
-                        for (var i = 0; i <= maxPropertyIndex; i++) {
-                            var propertySerialized = propertiesSerialized[i];
-
-                            // If index was missed...
-                            if (null == propertySerialized) {
-                                // Append stub byte
-                                _EnqueueBuffer(MSB);
-                            } else {
-                                // Append VLQ-encoded length
-                                _EnqueueLength(propertySerialized.Length);
-
-                                // Append encoded bytes
-                                _EnqueueBuffer(propertySerialized);
-                            }
-                        }
-                        */
         }
 
         private static readonly object PropertyCacheSync = new object();

@@ -85,11 +85,40 @@ namespace Comparison {
             File.WriteAllBytes("output.lw", LightWeight.Serialize(bible));
             lwTimer.Stop();
 
+            Console.WriteLine("SERIALIZE");
             Console.WriteLine("Jil:       {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.jil").Length / 1024, jilTimer.ElapsedMilliseconds);
             Console.WriteLine("JSON:      {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.json").Length / 1024, jsonTimer.ElapsedMilliseconds);
             Console.WriteLine("ProtoBuff: {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.buff").Length / 1024, protoBuffTimer.ElapsedMilliseconds);
             Console.WriteLine("MsgPack:   {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.msg").Length / 1024, msgPackTimer.ElapsedMilliseconds);
             Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.lw").Length / 1024, lwTimer.ElapsedMilliseconds);
+            /*
+            protoBuffTimer = Stopwatch.StartNew();
+            (new ProtobufCommonSerializer()).Deserialize<List<Segment>>(File.ReadAllText("output.buff"));
+            protoBuffTimer.Stop();
+
+            msgPackTimer = Stopwatch.StartNew();
+            (new MsgPackCommonSerializer()).Deserialize<List<Segment>>(File.ReadAllText("output.msg"));
+            msgPackTimer.Stop();
+
+            jilTimer = Stopwatch.StartNew();
+            (new JilCommonSerializer()).Deserialize<List<Segment>>(File.ReadAllText("output.jil"));
+            jilTimer.Stop();
+            */
+            jsonTimer = Stopwatch.StartNew();
+            JsonConvert.DeserializeObject<List<Segment>>(File.ReadAllText("output.json"));
+            jsonTimer.Stop();
+
+            lwTimer = Stopwatch.StartNew();
+            LightWeight.Deserialize<List<Segment>>(File.ReadAllBytes("output.lw"));
+            lwTimer.Stop();
+
+            Console.WriteLine("DESERIALIZE");
+            //Console.WriteLine("Jil:       {0,5:N0}ms", jilTimer.ElapsedMilliseconds);
+            Console.WriteLine("JSON:      {0,5:N0}ms", jsonTimer.ElapsedMilliseconds);
+            //Console.WriteLine("ProtoBuff: {0,5:N0}ms",  protoBuffTimer.ElapsedMilliseconds);
+            //Console.WriteLine("MsgPack:   {0,5:N0}ms",  msgPackTimer.ElapsedMilliseconds);
+            Console.WriteLine("LW:        {0,5:N0}ms",  lwTimer.ElapsedMilliseconds);
+
 
             Console.WriteLine("Done.");
             Console.ReadKey(true);

@@ -1,10 +1,6 @@
- - Add IEnumerable+IDictionary deserialization
- - Add IEnumerable+IDictionary unit tests
  - Test for things that shouldn't be serializable?
- - Add ISerializable support?
- - Swap to using DataContract and DataMember(Order=x)
- 
- - datetime
- - timespan
- - test edge conditions
+ - Add options on field attribute
+ - Add datetime support
+ - Add timespan support
  - readme
+ - NuGet
