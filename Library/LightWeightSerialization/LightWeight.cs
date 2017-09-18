@@ -116,7 +116,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             output.Generate(buffer);
         }
 
-
+        private Delegate GetSerializerBlind(Type type) {
+            var method = typeof(LightWeight).GetRuntimeMethods().Single(a => a.Name == nameof(GetSerializer)).MakeGenericMethod(type); // "typeof(LightWeight).GetRuntimeMethod(nameof(EnsureSerializer), new Type[] { })" returns NULL for generics - why?
+            return (Delegate)method.Invoke(this, null);
+        }
         private Delegate GetSerializer<T>() {
             // If there's no coder, build one
             if (!Serializers.TryGetValue(typeof(T), out var serilizer)) {
@@ -159,7 +162,25 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
         }
 
         private void PrepareForList<T>() {
-            throw new NotImplementedException();
+            Action<IList, SerializationOutput> serilizer = (value, output) => {
+                // Get serilizer for sub items
+                var subType = value.GetType().GenericTypeArguments[0];
+                var serializer = GetSerializerBlind(subType);
+
+                // Allocate space for a length header
+                var allocateId = output.Allocate();
+                var initialLength = output.Length;
+
+                // Serialize elements
+                foreach (var element in value) {
+                    serializer.DynamicInvoke(element, output);
+                }
+
+                // Set length header
+                output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+            };
+
+            Serializers[typeof(T)] = serilizer;
         }
 
         private void PrepareForDictionary<T>() {
@@ -210,17 +231,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 var maxval = properties.Keys.Max();
                 for (byte i = 0; i <= maxval; i++) {
                     if (properties.TryGetValue(i, out var itm)) {
-                        // Call EnsureSerilizer generically
-                        var method = typeof(LightWeight).GetRuntimeMethods().Single(a => a.Name == nameof(GetSerializer)).MakeGenericMethod(itm.FieldType); // "typeof(LightWeight).GetRuntimeMethod(nameof(EnsureSerializer), new Type[] { })" returns NULL for generics - why?
-                        var subtype = (Delegate)method.Invoke(this, null);
+                        // Get the serializer for the subitem
+                        var subType = GetSerializerBlind(itm.FieldType);
 
-                        // Get methodinfo
-                        var submethinfo = subtype.GetMethodInfo();
+                        // Get it's method info
+                        var subMethodInfo = subType.GetMethodInfo();
 
                         il.Emit(OpCodes.Ldarg_0); // value
                         il.Emit(OpCodes.Ldfld, itm);
                         il.Emit(OpCodes.Ldarg_1); // output
-                        il.Emit(OpCodes.Call, submethinfo);
+                        il.Emit(OpCodes.Call, subMethodInfo);
                     } else {
                         //output.AddRaw(0x80);
                         il.Emit(OpCodes.Ldarg_1);           // P1: output
