@@ -152,31 +152,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             }
 #endif
 
-
             // Get root serilizer
-            var rootDeserilizer = (Func<Buffer<byte>,T>)GetDeserializer<T>();
+            var rootDeserilizer = (Func<Buffer<byte>, T>)GetDeserializer<T>();
 
             // Invoke root serilizer
             return rootDeserilizer(input);
-
-            /*
-            if (null == type) {
-                throw new ArgumentNullException("type");
-            }
-
-
-
-            if (type.IsArray) {
-                return DeserializeArray(type.GetElementType(), payload);
-            }
-            if (typeof(IList).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
-                return DeserializeList(type.GenericTypeArguments[0], payload);
-            }
-            if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
-                return DeserializeDictionary(type.GenericTypeArguments[0], type.GenericTypeArguments[1], payload);
-            }
-
-            return DeserializePOCO(type, payload);*/
         }
 
         private Delegate GetDeserializerBlind(Type type) {
@@ -244,7 +224,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             };
             Serializers[typeof(T)] = serilizer;
 
-            Action<Array, SerializationOutput> deserilizer = (value, output) => {
+            Func<Buffer<byte>, Array> deserilizer = (input) => {
                 /*
                  * // Deserialize temporarily as list
             var container = DeserializeList(innerType, payload);
@@ -278,24 +258,27 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             };
             Serializers[typeof(T)] = serilizer;
 
-            Action<Array, SerializationOutput> deserilizer = (value, output) => { /*
+            // Get deserilizer for sub items
+            var innerDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[0]);
 
-            // Instantiate list
-            var output = (IList)Activator.CreateInstance(type);//typeof(List<>).MakeGenericType(type.GenericTypeArguments)
+            Func<Buffer<byte>, T> deserilizer = (input) => {
+                // Extract sub buffer
+                var length = (int)VLQ.DecompressUnsigned(input);
+                var subBuffer = input.DequeueBuffer(length);
 
-            // Deserialize items
-            while (buffer.IsReadable) {
-                // Deserialize value
-                var l = (int)VLQ.DecompressUnsigned(buffer);
-                var b = buffer.DequeueBuffer(l);
-                var v = Deserialize(b, type.GenericTypeArguments[0]);
+                // Instantiate list
+                var output = (IList)Activator.CreateInstance(typeof(T));//typeof(List<>).MakeGenericType(type.GenericTypeArguments)
 
-                // Add to output
-                output.Add(v);
-            }
+                // Deserialize until we reach length limit
+                while (subBuffer.IsReadable) {
+                    // Deserialize element
+                    var element = innerDeserializer.DynamicInvoke(subBuffer);
 
-            return output;*/
-                throw new NotImplementedException();
+                    // Add to output
+                    output.Add(element);
+                }
+
+                return (T)output;
             };
             Deserializers[typeof(T)] = deserilizer;
         }
@@ -322,7 +305,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             };
             Serializers[typeof(T)] = serilizer;
 
-            Action<Array, SerializationOutput> deserilizer = (value, output) => {
+            Func<Buffer<byte>, IDictionary> deserilizer = (input) => {
                 /*
                  *   // Instantiate dictionary
             var output = (IDictionary)Activator.CreateInstance(type); // typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments)
@@ -426,7 +409,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             Serializers[typeof(T)] = (Action<T, SerializationOutput>)methodInfo.CreateDelegate(typeof(Action<T, SerializationOutput>));
 
 
-            Action<Array, SerializationOutput> deserilizer = (value, output) => {
+            Func<Buffer<byte>, T> deserilizer = (input) => {
                 /* // Instantiate output
             var output = Activator.CreateInstance(type);
 

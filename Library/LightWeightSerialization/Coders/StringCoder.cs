@@ -5,6 +5,8 @@ using System.Text;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class StringCoder {
+        private static VLQCodec VLQ = new VLQCodec();
+
         public static void Serialize(string value, SerializationOutput output) {
             if (null == value) {
                 output.AddRaw(VLQCodec.Nil);
@@ -14,7 +16,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
         }
 
         public static string Deserialize(Buffer<byte> buffer) {
-            return Encoding.UTF8.GetString(buffer.GetUnderlying(), buffer.Start, buffer.Readable);
+            var length = (int)VLQ.DecompressUnsigned(buffer);
+            var subBuffer = buffer.DequeueBuffer(length);
+            
+            return Encoding.UTF8.GetString(subBuffer.GetUnderlying(), subBuffer.Start, subBuffer.Readable);
         }
     }
 }

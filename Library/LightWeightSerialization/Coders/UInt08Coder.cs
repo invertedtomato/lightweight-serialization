@@ -4,6 +4,8 @@ using System;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class UInt8Coder {
+        private static VLQCodec VLQ = new VLQCodec();
+
         public static void Serialize(byte value, SerializationOutput output) {
             if (value == 0) {
                 output.AddRaw(VLQCodec.Nil);
@@ -13,9 +15,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
         }
 
         public static byte Deserialize(Buffer<byte> buffer) {
-            switch (buffer.Readable) {
+            var length = (int)VLQ.DecompressUnsigned(buffer);
+            var subBuffer = buffer.DequeueBuffer(length);
+
+            switch (length) {
                 case 0: return 0;
-                case 1: return buffer.Dequeue();
+                case 1: return subBuffer.Dequeue();
                 default: throw new DataFormatException("UInt64 values can be 0 or 1 bytes.");
             }
         }
