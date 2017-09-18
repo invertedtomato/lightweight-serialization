@@ -158,13 +158,29 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
         }
 
         private void PrepareForArray<T>() {
-            throw new NotImplementedException();
+            // Get serilizer for sub items
+            var serializer = GetSerializerBlind(typeof(T).GetElementType());
+
+            Action<Array, SerializationOutput> serilizer = (value, output) => {
+                // Allocate space for a length header
+                var allocateId = output.Allocate();
+                var initialLength = output.Length;
+
+                // Serialize elements
+                foreach (var element in value) {
+                    serializer.DynamicInvoke(element, output);
+                }
+
+                // Set length header
+                output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+            };
+
+            Serializers[typeof(T)] = serilizer;
         }
 
         private void PrepareForList<T>() {
             // Get serilizer for sub items
-            var subType = typeof(T).GenericTypeArguments[0];
-            var serializer = GetSerializerBlind(subType);
+            var serializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
 
             Action<IList, SerializationOutput> serilizer = (value, output) => {
                 // Allocate space for a length header
