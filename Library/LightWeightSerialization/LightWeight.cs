@@ -86,7 +86,18 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             Serializers.Add(typeof(uint), (Action<uint, SerializationOutput>)UInt32Coder.Serialize);
             Serializers.Add(typeof(ulong), (Action<ulong, SerializationOutput>)UInt64Coder.Serialize);
             Serializers.Add(typeof(string), (Action<string, SerializationOutput>)StringCoder.Serialize);
-            // TODO: load primative deserializers
+
+            // Load primative deserializers
+            Deserializers.Add(typeof(bool), (Func<Buffer<byte>, bool>)BoolCoder.Deserialize);
+            Deserializers.Add(typeof(sbyte), (Func<Buffer<byte>, sbyte>)SInt8Coder.Deserialize);
+            Deserializers.Add(typeof(short), (Func<Buffer<byte>, short>)SInt16Coder.Deserialize);
+            Deserializers.Add(typeof(int), (Func<Buffer<byte>, int>)SInt32Coder.Deserialize);
+            Deserializers.Add(typeof(long), (Func<Buffer<byte>, long>)SInt64Coder.Deserialize);
+            Deserializers.Add(typeof(byte), (Func<Buffer<byte>, byte>)UInt8Coder.Deserialize);
+            Deserializers.Add(typeof(ushort), (Func<Buffer<byte>, ushort>)UInt16Coder.Deserialize);
+            Deserializers.Add(typeof(uint), (Func<Buffer<byte>, uint>)UInt32Coder.Deserialize);
+            Deserializers.Add(typeof(ulong), (Func<Buffer<byte>, ulong>)UInt64Coder.Deserialize);
+            Deserializers.Add(typeof(string), (Func<Buffer<byte>, string>)StringCoder.Deserialize);
 
             // Prepare assembly for dynamic serilizers/deserilizers
             var dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("DynamicCoders"), AssemblyBuilderAccess.Run);
@@ -131,6 +142,53 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             return serilizer;
         }
 
+        /// <summary>
+        /// Deserialize a value from a buffer.
+        /// </summary>
+        public T Deserialize<T>(Buffer<byte> input) {
+#if DEBUG
+            if (null == input) {
+                throw new ArgumentNullException(nameof(input));
+            }
+#endif
+            /*
+            if (null == type) {
+                throw new ArgumentNullException("type");
+            }
+
+
+
+            if (type.IsArray) {
+                return DeserializeArray(type.GetElementType(), payload);
+            }
+            if (typeof(IList).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
+                return DeserializeList(type.GenericTypeArguments[0], payload);
+            }
+            if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
+                return DeserializeDictionary(type.GenericTypeArguments[0], type.GenericTypeArguments[1], payload);
+            }
+
+            return DeserializePOCO(type, payload);*/
+
+            throw new NotImplementedException();
+
+        }
+
+        private Delegate GetDeserializerBlind(Type type) {
+            var method = typeof(LightWeight).GetRuntimeMethods().Single(a => a.Name == nameof(GetDeserializer)).MakeGenericMethod(type); // "typeof(LightWeight).GetRuntimeMethod(nameof(EnsureSerializer), new Type[] { })" returns NULL for generics - why?
+            return (Delegate)method.Invoke(this, null);
+        }
+        private Delegate GetDeserializer<T>() {
+            // If there's no coder, build one
+            if (!Deserializers.TryGetValue(typeof(T), out var deserilizer)) {
+                PrepareFor<T>();
+                deserilizer = Deserializers[typeof(T)];
+            }
+
+            // Return coder
+            return deserilizer;
+        }
+
 
 
         /// <summary>
@@ -159,7 +217,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
         private void PrepareForArray<T>() {
             // Get serilizer for sub items
-            var serializer = GetSerializerBlind(typeof(T).GetElementType());
+            var innerSerializer = GetSerializerBlind(typeof(T).GetElementType());
 
             Action<Array, SerializationOutput> serilizer = (value, output) => {
                 if (null == value) {
@@ -173,19 +231,32 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                 // Serialize elements
                 foreach (var element in value) {
-                    serializer.DynamicInvoke(element, output);
+                    innerSerializer.DynamicInvoke(element, output);
                 }
 
                 // Set length header
                 output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
             };
-
             Serializers[typeof(T)] = serilizer;
+
+            Action<Array, SerializationOutput> deserilizer = (value, output) => {
+                /*
+                 * // Deserialize temporarily as list
+            var container = DeserializeList(innerType, payload);
+
+            // Convert to array and return
+            var output = Array.CreateInstance(type.GetElementType(), container.Count);
+            container.CopyTo(output, 0);
+
+            return output;*/
+                throw new NotImplementedException();
+            };
+            Deserializers[typeof(T)] = deserilizer;
         }
 
         private void PrepareForList<T>() {
             // Get serilizer for sub items
-            var serializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
+            var innerSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
 
             Action<IList, SerializationOutput> serilizer = (value, output) => {
                 // Allocate space for a length header
@@ -194,20 +265,40 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                 // Serialize elements
                 foreach (var element in value) {
-                    serializer.DynamicInvoke(element, output);
+                    innerSerializer.DynamicInvoke(element, output);
                 }
 
                 // Set length header
                 output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
             };
-
             Serializers[typeof(T)] = serilizer;
+
+            Action<Array, SerializationOutput> deserilizer = (value, output) => { /*
+
+            // Instantiate list
+            var output = (IList)Activator.CreateInstance(type);//typeof(List<>).MakeGenericType(type.GenericTypeArguments)
+
+            // Deserialize items
+            while (buffer.IsReadable) {
+                // Deserialize value
+                var l = (int)VLQ.DecompressUnsigned(buffer);
+                var b = buffer.DequeueBuffer(l);
+                var v = Deserialize(b, type.GenericTypeArguments[0]);
+
+                // Add to output
+                output.Add(v);
+            }
+
+            return output;*/
+                throw new NotImplementedException();
+            };
+            Deserializers[typeof(T)] = deserilizer;
         }
 
         private void PrepareForDictionary<T>() {
             // Get serilizer for sub items
-            var keySerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
-            var valueSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[1]);
+            var innerKeySerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
+            var innerValueSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[1]);
 
             Action<IDictionary, SerializationOutput> serilizer = (value, output) => {
                 // Allocate space for a length header
@@ -217,15 +308,40 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 // Serialize elements
                 var e = value.GetEnumerator();
                 while (e.MoveNext()) {
-                    keySerializer.DynamicInvoke(e.Key, output);
-                    valueSerializer.DynamicInvoke(e.Value, output);
+                    innerKeySerializer.DynamicInvoke(e.Key, output);
+                    innerValueSerializer.DynamicInvoke(e.Value, output);
                 }
 
                 // Set length header
                 output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
             };
-
             Serializers[typeof(T)] = serilizer;
+
+            Action<Array, SerializationOutput> deserilizer = (value, output) => {
+                /*
+                 *   // Instantiate dictionary
+            var output = (IDictionary)Activator.CreateInstance(type); // typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments)
+
+            // Loop through input buffer until depleated
+            while (buffer.IsReadable) {
+                // Deserialize key
+                var kl = (int)VLQ.DecompressUnsigned(buffer);
+                var kb = buffer.DequeueBuffer(kl);
+                var k = Deserialize(kb, type.GenericTypeArguments[0]);
+
+                // Deserialize value
+                var vl = (int)VLQ.DecompressUnsigned(buffer);
+                var vb = buffer.DequeueBuffer(vl);
+                var v = Deserialize(vb, type.GenericTypeArguments[1]);
+
+                // Add to output
+                output[k] = v;
+            }
+
+            return output;*/
+                throw new NotImplementedException();
+            };
+            Deserializers[typeof(T)] = deserilizer;
         }
 
         private void PrepareForPOCO<T>() {
@@ -303,39 +419,47 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Add to serilizers
             var methodInfo = newType.CreateTypeInfo().GetMethod(name);
             Serializers[typeof(T)] = (Action<T, SerializationOutput>)methodInfo.CreateDelegate(typeof(Action<T, SerializationOutput>));
-        }
 
 
-        /// <summary>
-        /// Deserialize a value from a buffer.
-        /// </summary>
-        public T Deserialize<T>(Buffer<byte> input) {
-#if DEBUG
-            if (null == input) {
-                throw new ArgumentNullException(nameof(input));
+            Action<Array, SerializationOutput> deserilizer = (value, output) => {
+                /* // Instantiate output
+            var output = Activator.CreateInstance(type);
+
+            // Prepare for object deserialization
+            var index = -1;
+
+            // Attempt to read field length, if we've reached the end of the payload, abort
+            while (payload.IsReadable) {
+                // Get the length in a usable format
+                var l = (int)Codec.DecompressUnsigned(payload);
+                var b = payload.DequeueBuffer(l);
+
+                // Increment the index
+                index++;
+
+                // Iterate through each property looking for one that matches index
+                foreach (var property in type.GetRuntimeProperties()) {
+                    // Get property attribute which tells us the properties' index
+                    var attribute = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute);
+
+                    // Skip if not found, or index doesn't match
+                    if (null == attribute || attribute.Index != index) {
+                        // No attribute found, skip
+                        continue;
+                    }
+
+                    // Deserialize value
+                    var v = Deserialize(b, property.PropertyType);
+
+                    // Set it on property
+                    property.SetValue(output, v);
+                }
             }
-#endif
-            /*
-            if (null == type) {
-                throw new ArgumentNullException("type");
-            }
 
-
-
-            if (type.IsArray) {
-                return DeserializeArray(type.GetElementType(), payload);
-            }
-            if (typeof(IList).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
-                return DeserializeList(type.GenericTypeArguments[0], payload);
-            }
-            if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
-                return DeserializeDictionary(type.GenericTypeArguments[0], type.GenericTypeArguments[1], payload);
-            }
-
-            return DeserializePOCO(type, payload);*/
-
-            throw new NotImplementedException();
-
+            return output;*/
+                throw new NotImplementedException();
+            };
+            Deserializers[typeof(T)] = deserilizer;
         }
     }
 }

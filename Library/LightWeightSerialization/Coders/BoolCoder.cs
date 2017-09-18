@@ -12,7 +12,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
             }
         }
 
-        public static bool Deserialize(Type type, Buffer<byte> buffer) {
+        public static bool Deserialize(Buffer<byte> buffer) {
             if (buffer.Readable == 0) {
                 return false;
             }

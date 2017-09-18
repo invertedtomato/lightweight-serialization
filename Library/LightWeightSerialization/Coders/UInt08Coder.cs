@@ -12,7 +12,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
             }
         }
 
-        public object Deserialize(Buffer<byte> buffer) {
+        public static byte Deserialize(Buffer<byte> buffer) {
             switch (buffer.Readable) {
                 case 0: return 0;
                 case 1: return buffer.Dequeue();

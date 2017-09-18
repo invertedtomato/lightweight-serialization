@@ -13,11 +13,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
             }
         }
 
-        public object Deserialize(Buffer<byte> buffer) {
+        public static short Deserialize(Buffer<byte> buffer) {
             switch (buffer.Readable) {
                 case 0: return 0;
                 case 1: return buffer.Dequeue();
-                case 2: return BitConverter.ToInt16(buffer.DequeueBuffer(2).ToArray(), 0);
+                case 2: return BitConverter.ToInt16(buffer.GetUnderlying(), buffer.Start);
                 default: throw new DataFormatException("SInt64 values can be 0, 1 or 2 bytes.");
             }
         }

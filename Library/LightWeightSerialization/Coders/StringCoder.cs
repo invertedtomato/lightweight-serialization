@@ -13,7 +13,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
             }
         }
 
-        public object Deserialize(Buffer<byte> buffer) {
+        public static string Deserialize(Buffer<byte> buffer) {
             return Encoding.UTF8.GetString(buffer.GetUnderlying(), buffer.Start, buffer.Readable);
         }
     }

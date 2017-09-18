@@ -13,15 +13,15 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
             }
         }
 
-        public object Deserialize(Buffer<byte> buffer) {
+        public static ulong Deserialize(Buffer<byte> buffer) {
             switch (buffer.Readable) {
                 case 0: return 0;
                 case 1: return buffer.Dequeue();
-                case 2: return BitConverter.ToUInt16(buffer.DequeueBuffer(2).ToArray(), 0);
+                case 2: return BitConverter.ToUInt16(buffer.GetUnderlying(), buffer.Start);
                 // TODO: 3
-                case 4: return BitConverter.ToUInt32(buffer.DequeueBuffer(4).ToArray(), 0);
+                case 4: return BitConverter.ToUInt32(buffer.GetUnderlying(), buffer.Start);
                 // TODO 5,6,7
-                case 8: return BitConverter.ToUInt64(buffer.DequeueBuffer(8).ToArray(), 0);
+                case 8: return BitConverter.ToUInt64(buffer.GetUnderlying(), buffer.Start);
                 default: throw new DataFormatException("UInt64 values can be 0, 1, 2, 4 or 8 bytes.");
             }
         }
