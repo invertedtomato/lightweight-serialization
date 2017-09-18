@@ -1,11 +1,16 @@
-﻿using InvertedTomato.IO.Buffers;
+﻿using InvertedTomato.Compression.Integers;
+using InvertedTomato.IO.Buffers;
 using System;
 using System.Text;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class StringCoder {
         public static void Serialize(string value, SerializationOutput output) {
-            output.AddArray(Encoding.UTF8.GetBytes(value));
+            if (null == value) {
+                output.AddRaw(VLQCodec.Nil);
+            } else {
+                output.AddArray(Encoding.UTF8.GetBytes(value));
+            }
         }
 
         public object Deserialize(Buffer<byte> buffer) {

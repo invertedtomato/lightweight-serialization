@@ -140,6 +140,13 @@ public class CoderTests {
         Assert.Equal(new byte[] { VLQCodec.Nil + 8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, o.ToArray());
     }
 
+
+    [Fact]
+    public void Serialize_String_Null() {
+        var o = new SerializationOutput();
+        StringCoder.Serialize(null, o);
+        Assert.Equal(new byte[] { VLQCodec.Nil }, o.ToArray());
+    }
     [Fact]
     public void Serialize_String_Zero() {
         var o = new SerializationOutput();

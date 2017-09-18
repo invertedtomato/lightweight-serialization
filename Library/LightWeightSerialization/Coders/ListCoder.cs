@@ -6,7 +6,8 @@ using System.Collections.Generic;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class ListCoder {
-        public static void Serialize(IList value, SerilizationOutput output) {
+        public static void Serialize(IList value, SerializationOutput output) {
+            /*
             var allocateId = output.Allocate();
             var initialLength = output.Length;
 
@@ -16,7 +17,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
 
                 output.AddRawArray(Serialize(element));
             }
-            output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+            output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));*/
+            throw new NotImplementedException();
         }
 
         public object Deserialize(Type type, Buffer<byte> buffer) {

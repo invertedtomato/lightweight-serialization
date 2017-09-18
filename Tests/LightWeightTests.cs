@@ -142,6 +142,10 @@ public class LightWeightTests {
     }
     */
     [Fact]
+    public void Serialize_Null() {
+        Assert.Equal(new byte[] { }, LightWeight.Serialize<string>(null));
+    }
+    [Fact]
     public void Serialize_POCO_Empty() {
         var target = new Empty() {
             A = 1,
