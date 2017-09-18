@@ -19,12 +19,12 @@ namespace Comparison {
         [JsonProperty("m")]
         [DataMember(Order = 0)]
         [ProtoMember(1)]
-        public byte Mode { get; set; }
+        public byte Mode;
 
         [LightWeightProperty(1)]
         [JsonProperty("c")]
         [DataMember(Order = 1)]
         [ProtoMember(2)]
-        public string Content { get; set; }
+        public string Content;
     }
 }

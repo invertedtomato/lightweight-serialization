@@ -1,13 +1,13 @@
 ﻿using InvertedTomato.Serialization.LightWeightSerialization;
 
-class ThreeInts {
+public class ThreeInts {
     [LightWeightProperty(1)]
-    public int A { get; set; }
+    public int A;
 
     [LightWeightProperty(0)]
-    public int B { get; set; }
+    public int B;
 
     [LightWeightProperty(2)]
-    public int C { get; set; }
+    public int C;
 }
 

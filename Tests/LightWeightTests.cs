@@ -1,109 +1,12 @@
 ﻿using InvertedTomato.Serialization.LightWeightSerialization;
+using System;
 using System.Collections.Generic;
+using System.Text;
 using Xunit;
 
 public class LightWeightTests {
-    [Fact]
-    public void Serialize_Boolean_False() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize(false));
-    }
-    [Fact]
-    public void Serialize_Boolean_True() {
-        Assert.Equal(new byte[] { byte.MaxValue }, LightWeight.Serialize(true));
-    }
 
-
-    [Fact]
-    public void Serialize_Integer_SInt8_Min() {
-        Assert.Equal(new byte[] { 128 }, LightWeight.Serialize(sbyte.MinValue)); //TODO: Check
-    }
-    [Fact]
-    public void Serialize_Integer_SInt8_Zero() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize((sbyte)0));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt8_Max() {
-        Assert.Equal(new byte[] { 127 }, LightWeight.Serialize(sbyte.MaxValue)); //TODO: Check
-    }
-    [Fact]
-    public void Serialize_Integer_SInt16_Min() {
-        Assert.Equal(new byte[] { 0, 128 }, LightWeight.Serialize(short.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt16_Zero() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize((short)0));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt16_Max() {
-        Assert.Equal(new byte[] { 255, 127 }, LightWeight.Serialize(short.MaxValue));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt32_Min() {
-        Assert.Equal(new byte[] { 0, 0, 0, 128 }, LightWeight.Serialize(int.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt32_Zero() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize((int)0));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt32_Max() {
-        Assert.Equal(new byte[] { 255, 255, 255, 127 }, LightWeight.Serialize(int.MaxValue));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt64_Min() {
-        Assert.Equal(new byte[] { 0, 0, 0, 0, 0, 0, 0, 128 }, LightWeight.Serialize(long.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt64_Zero() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize((long)0));
-    }
-    [Fact]
-    public void Serialize_Integer_SInt64_Max() {
-        Assert.Equal(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }, LightWeight.Serialize(long.MaxValue));
-    }
-
-    [Fact]
-    public void Serialize_Integer_UInt8_Min() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize(byte.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt8_Max() {
-        Assert.Equal(new byte[] { 255 }, LightWeight.Serialize(byte.MaxValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt16_Min() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize(ushort.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt16_Max() {
-        Assert.Equal(new byte[] { 255, 255 }, LightWeight.Serialize(ushort.MaxValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt32_Min() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize(uint.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt32_Max() {
-        Assert.Equal(new byte[] { 255, 255, 255, 255 }, LightWeight.Serialize(uint.MaxValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt64_Min() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize(ulong.MinValue));
-    }
-    [Fact]
-    public void Serialize_Integer_UInt64_UMax() {
-        Assert.Equal(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, LightWeight.Serialize(ulong.MaxValue));
-    }
-
-    [Fact]
-    public void Serialize_String_Zero() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize(""));
-    }
-    [Fact]
-    public void Serialize_String_1() {
-        Assert.Equal(new byte[] { (byte)'a' }, LightWeight.Serialize("a"));
-    }
-
+    /*
     [Fact]
     public void Serialize_Array_Bool() {
         var serialized = LightWeight.Serialize(new bool[] { true, true, false });
@@ -237,9 +140,9 @@ public class LightWeightTests {
                 (byte)'d',(byte)'e', (byte)'f'
         }, serialized);
     }
-
+    */
     [Fact]
-    public void Serialize_Object_Empty() {
+    public void Serialize_POCO_Empty() {
         var target = new Empty() {
             A = 1,
             B = 9,
@@ -249,7 +152,7 @@ public class LightWeightTests {
         Assert.Equal(new byte[] { }, LightWeight.Serialize(target));
     }
     [Fact]
-    public void Serialize_Object_Basic() {
+    public void Serialize_POCO_Basic() {
         var serialized = LightWeight.Serialize(new ThreeInts() {
             A = 1,
             B = 9,
@@ -266,7 +169,7 @@ public class LightWeightTests {
         }, serialized);
     }
     [Fact]
-    public void Serialize_Object_Complex() {
+    public void Serialize_POCO_Complex() {
         var serialized = LightWeight.Serialize(new Layered() {
             Y = "test",
             Z = new ThreeInts() {
@@ -290,7 +193,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Serialize_List_SInt32() {
+    public void Serialize_IList_SInt32() {
         var serialized = LightWeight.Serialize(new List<int>() { 1, 2, 3 });
 
         Assert.Equal(new byte[] {
@@ -303,7 +206,7 @@ public class LightWeightTests {
         }, serialized);
     }
     [Fact]
-    public void Serialize_Dict_SInt32_String() {
+    public void Serialize_IDict_SInt32_String() {
         var serialized = LightWeight.Serialize(new Dictionary<int, string>() {
             {1, "a" },
             {2, "b" },
@@ -320,83 +223,84 @@ public class LightWeightTests {
         }, serialized);
     }
 
+    /*
     [Fact]
-    public void Deserialize_Boolean_False() {
+    public void Deserialize_Bool_False() {
         Assert.Equal(false, LightWeight.Deserialize<bool>(new byte[] { }));
     }
     [Fact]
-    public void Deserialize_Boolean_True() {
+    public void Deserialize_Bool_True() {
         Assert.Equal(true, LightWeight.Deserialize<bool>(new byte[] { byte.MaxValue }));
     }
 
 
     [Fact]
-    public void Deserialize_Integer_SInt8_Min() {
+    public void Deserialize_SInt8_Min() {
         Assert.Equal(sbyte.MinValue, LightWeight.Deserialize<sbyte>(new byte[] { 128 })); // TODO: check
     }
     [Fact]
-    public void Deserialize_Integer_SInt8_Zero() {
+    public void Deserialize_SInt8_Zero() {
         Assert.Equal(0, LightWeight.Deserialize<sbyte>(new byte[] { }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt8_Max() {
+    public void Deserialize_SInt8_Max() {
         Assert.Equal(sbyte.MaxValue, LightWeight.Deserialize<sbyte>(new byte[] { 127 })); // TODO: check
     }
     [Fact]
-    public void Deserialize_Integer_SInt16_Min() {
+    public void Deserialize_SInt16_Min() {
         Assert.Equal(short.MinValue, LightWeight.Deserialize<short>(new byte[] { 0, 128 }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt16_Zero() {
+    public void Deserialize_SInt16_Zero() {
         Assert.Equal(0, LightWeight.Deserialize<short>(new byte[] { }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt16_Max() {
+    public void Deserialize_SInt16_Max() {
         Assert.Equal(short.MaxValue, LightWeight.Deserialize<short>(new byte[] { 255, 127 }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt32_Min() {
+    public void Deserialize_SInt32_Min() {
         Assert.Equal(int.MinValue, LightWeight.Deserialize<int>(new byte[] { 0, 0, 0, 128 }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt32_Zero() {
+    public void Deserialize_SInt32_Zero() {
         Assert.Equal(0, LightWeight.Deserialize<int>(new byte[] { }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt32_Max() {
+    public void Deserialize_SInt32_Max() {
         Assert.Equal(int.MaxValue, LightWeight.Deserialize<int>(new byte[] { 255, 255, 255, 127 }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt64_Min() {
+    public void Deserialize_SInt64_Min() {
         Assert.Equal(long.MinValue, LightWeight.Deserialize<long>(new byte[] { 0, 0, 0, 0, 0, 0, 0, 128 }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt64_Zero() {
+    public void Deserialize_SInt64_Zero() {
         Assert.Equal((long)0, LightWeight.Deserialize<long>(new byte[] { }));
     }
     [Fact]
-    public void Deserialize_Integer_SInt64_Max() {
+    public void Deserialize_SInt64_Max() {
         Assert.Equal(long.MaxValue, LightWeight.Deserialize<long>(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }));
     }
 
     [Fact]
-    public void Deserialize_Integer_UInt8() {
+    public void Deserialize_UInt8() {
         Assert.Equal(1, LightWeight.Deserialize<byte>(new byte[] { 1 }));
     }
     [Fact]
-    public void Deserialize_Integer_UInt16() {
+    public void Deserialize_UInt16() {
         Assert.Equal((ushort)byte.MaxValue + 1, LightWeight.Deserialize<ushort>(new byte[] { 0, 1 }));
     }
     [Fact]
-    public void Deserialize_Integer_UInt32() {
+    public void Deserialize_UInt32() {
         Assert.Equal((uint)ushort.MaxValue + 1, LightWeight.Deserialize<uint>(new byte[] { 0, 0, 1, 0 }));
     }
     [Fact]
-    public void Deserialize_Integer_UInt64() {
+    public void Deserialize_UInt64() {
         Assert.Equal((ulong)uint.MaxValue + 1, LightWeight.Deserialize<ulong>(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }));
     }
     [Fact]
-    public void Deserialize_Integer_UMax() {
+    public void Deserialize_UMax() {
         Assert.Equal(ulong.MaxValue, LightWeight.Deserialize<ulong>(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }));
     }
 
@@ -620,4 +524,5 @@ public class LightWeightTests {
             {3, "c" }
         }, result);
     }
+    */
 }

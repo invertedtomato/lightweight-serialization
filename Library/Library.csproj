@@ -1,14 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.0</TargetFramework>
+    <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>InvertedTomato.LightWeightSerialization.Library</AssemblyName>
     <RootNamespace>InvertedTomato.Serialization</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="InvertedTomato.Buffers" Version="1.0.11" />
-    <PackageReference Include="InvertedTomato.IntegerCompression" Version="1.1.7" />
+    <Compile Remove="LightWeightSerialization\Coders\ArrayCoder.cs" />
+    <Compile Remove="LightWeightSerialization\Coders\CoderRegistry.cs" />
+    <Compile Remove="LightWeightSerialization\Coders\DictionaryCoder.cs" />
+    <Compile Remove="LightWeightSerialization\Coders\ICoder.cs" />
+    <Compile Remove="LightWeightSerialization\Coders\ListCoder.cs" />
+    <Compile Remove="LightWeightSerialization\Coders\POCOCoder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="InvertedTomato.Buffers" Version="1.0.15" />
+    <PackageReference Include="InvertedTomato.IntegerCompression" Version="1.1.9" />
+    <PackageReference Include="System.Reflection" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
   </ItemGroup>
 
 </Project>
