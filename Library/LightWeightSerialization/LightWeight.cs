@@ -162,6 +162,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             var serializer = GetSerializerBlind(typeof(T).GetElementType());
 
             Action<Array, SerializationOutput> serilizer = (value, output) => {
+                if (null == value) {
+                    output.AddRaw(VLQCodec.Nil);
+                    return;
+                }
+
                 // Allocate space for a length header
                 var allocateId = output.Allocate();
                 var initialLength = output.Length;

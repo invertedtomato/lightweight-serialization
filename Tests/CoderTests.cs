@@ -1,7 +1,6 @@
 ﻿using InvertedTomato.Compression.Integers;
 using InvertedTomato.Serialization.LightWeightSerialization;
 using InvertedTomato.Serialization.LightWeightSerialization.Coders;
-using System.Collections.Generic;
 using Xunit;
 
 public class CoderTests {

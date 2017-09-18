@@ -5,8 +5,15 @@ using System.Text;
 using Xunit;
 
 public class LightWeightTests {
+    [Fact]
+    public void Serialize_String_Null() {
+        Assert.Equal(new byte[] { }, LightWeight.Serialize<string>(null));
+    }
 
-    /*
+    [Fact]
+    public void Serialize_Array_Null() {
+        Assert.Equal(new byte[] { }, LightWeight.Serialize<bool[]>(null));
+    }
     [Fact]
     public void Serialize_Array_Bool() {
         var serialized = LightWeight.Serialize(new bool[] { true, true, false });
@@ -20,7 +27,6 @@ public class LightWeightTests {
                 // false
         }, serialized);
     }
-
     [Fact]
     public void Serialize_Array_SInt8() {
         var serialized = LightWeight.Serialize(new sbyte[] { 1, 2, 3 });
@@ -73,7 +79,6 @@ public class LightWeightTests {
                 0xE8, 0x03 // 1000
         }, serialized);
     }
-
     [Fact]
     public void Serialize_Array_UInt8() {
         var serialized = LightWeight.Serialize(new byte[] { 1, 2, 3 });
@@ -126,10 +131,9 @@ public class LightWeightTests {
                 0xE8, 0x03 // 1000
         }, serialized);
     }
-
     [Fact]
     public void Serialize_Array_String() {
-        var serialized = LightWeight.Serialize(new string[] { "a", "bc", "def" });
+        var serialized = LightWeight.Serialize(new string[] { "a", "bc", "def", "", null });
 
         Assert.Equal(new byte[] {
             0x81, // [0]
@@ -137,14 +141,13 @@ public class LightWeightTests {
             0x82, // [1]
                 (byte)'b', (byte)'c',
             0x83, // [2]
-                (byte)'d',(byte)'e', (byte)'f'
+                (byte)'d',(byte)'e', (byte)'f',
+            0x80, //[3]
+            0x80 // [4]
+
         }, serialized);
     }
-    */
-    [Fact]
-    public void Serialize_Null() {
-        Assert.Equal(new byte[] { }, LightWeight.Serialize<string>(null));
-    }
+
     [Fact]
     public void Serialize_POCO_Empty() {
         var target = new Empty() {
