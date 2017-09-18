@@ -151,6 +151,14 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 throw new ArgumentNullException(nameof(input));
             }
 #endif
+
+
+            // Get root serilizer
+            var rootDeserilizer = (Func<Buffer<byte>,T>)GetDeserializer<T>();
+
+            // Invoke root serilizer
+            return rootDeserilizer(input);
+
             /*
             if (null == type) {
                 throw new ArgumentNullException("type");
@@ -169,9 +177,6 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             }
 
             return DeserializePOCO(type, payload);*/
-
-            throw new NotImplementedException();
-
         }
 
         private Delegate GetDeserializerBlind(Type type) {
