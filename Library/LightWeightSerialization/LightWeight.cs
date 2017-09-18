@@ -162,11 +162,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
         }
 
         private void PrepareForList<T>() {
-            Action<IList, SerializationOutput> serilizer = (value, output) => {
-                // Get serilizer for sub items
-                var subType = value.GetType().GenericTypeArguments[0];
-                var serializer = GetSerializerBlind(subType);
+            // Get serilizer for sub items
+            var subType = typeof(T).GenericTypeArguments[0];
+            var serializer = GetSerializerBlind(subType);
 
+            Action<IList, SerializationOutput> serilizer = (value, output) => {
                 // Allocate space for a length header
                 var allocateId = output.Allocate();
                 var initialLength = output.Length;
@@ -184,7 +184,27 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
         }
 
         private void PrepareForDictionary<T>() {
-            throw new NotImplementedException();
+            // Get serilizer for sub items
+            var keySerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
+            var valueSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[1]);
+
+            Action<IDictionary, SerializationOutput> serilizer = (value, output) => {
+                // Allocate space for a length header
+                var allocateId = output.Allocate();
+                var initialLength = output.Length;
+
+                // Serialize elements
+                var e = value.GetEnumerator();
+                while (e.MoveNext()) {
+                    keySerializer.DynamicInvoke(e.Key, output);
+                    valueSerializer.DynamicInvoke(e.Value, output);
+                }
+
+                // Set length header
+                output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+            };
+
+            Serializers[typeof(T)] = serilizer;
         }
 
         private void PrepareForPOCO<T>() {
