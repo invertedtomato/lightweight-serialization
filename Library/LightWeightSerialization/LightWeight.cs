@@ -204,23 +204,23 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Get serilizer for sub items
             var innerSerializer = GetSerializerBlind(typeof(T).GetElementType());
 
-            Action<Array, SerializationOutput> serilizer = (value, output) => {
+            Action<Array, SerializationOutput> serilizer = (value, buffer) => {
                 if (null == value) {
-                    output.AddRaw(VLQCodec.Nil);
+                    buffer.AddRaw(VLQCodec.Nil);
                     return;
                 }
 
                 // Allocate space for a length header
-                var allocateId = output.Allocate();
-                var initialLength = output.Length;
+                var allocateId = buffer.Allocate();
+                var initialLength = buffer.Length;
 
                 // Serialize elements
                 foreach (var element in value) {
-                    innerSerializer.DynamicInvoke(element, output);
+                    innerSerializer.DynamicInvoke(element, buffer);
                 }
 
                 // Set length header
-                output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+                buffer.SetVLQ(allocateId, (ulong)(buffer.Length - initialLength));
             };
             Serializers[typeof(T)] = serilizer;
 
@@ -259,18 +259,18 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Get serilizer for sub items
             var innerSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
 
-            Action<IList, SerializationOutput> serilizer = (value, output) => {
+            Action<IList, SerializationOutput> serilizer = (value, buffer) => {
                 // Allocate space for a length header
-                var allocateId = output.Allocate();
-                var initialLength = output.Length;
+                var allocateId = buffer.Allocate();
+                var initialLength = buffer.Length;
 
                 // Serialize elements
                 foreach (var element in value) {
-                    innerSerializer.DynamicInvoke(element, output);
+                    innerSerializer.DynamicInvoke(element, buffer);
                 }
 
                 // Set length header
-                output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+                buffer.SetVLQ(allocateId, (ulong)(buffer.Length - initialLength));
             };
             Serializers[typeof(T)] = serilizer;
 
@@ -306,20 +306,20 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             var innerKeySerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
             var innerValueSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[1]);
 
-            Action<IDictionary, SerializationOutput> serilizer = (value, output) => {
+            Action<IDictionary, SerializationOutput> serilizer = (value, buffer) => {
                 // Allocate space for a length header
-                var allocateId = output.Allocate();
-                var initialLength = output.Length;
+                var allocateId = buffer.Allocate();
+                var initialLength = buffer.Length;
 
                 // Serialize elements
                 var e = value.GetEnumerator();
                 while (e.MoveNext()) {
-                    innerKeySerializer.DynamicInvoke(e.Key, output);
-                    innerValueSerializer.DynamicInvoke(e.Value, output);
+                    innerKeySerializer.DynamicInvoke(e.Key, buffer);
+                    innerValueSerializer.DynamicInvoke(e.Value, buffer);
                 }
 
                 // Set length header
-                output.SetVLQ(allocateId, (ulong)(output.Length - initialLength));
+                buffer.SetVLQ(allocateId, (ulong)(buffer.Length - initialLength));
             };
             Serializers[typeof(T)] = serilizer;
 

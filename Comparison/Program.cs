@@ -1,5 +1,4 @@
 ﻿using CommonSerializer;
-using CommonSerializer.Jil;
 using CommonSerializer.MsgPack.Cli;
 using CommonSerializer.ProtobufNet;
 using InvertedTomato.IO.Buffers;
@@ -12,6 +11,15 @@ using System.IO;
 
 namespace Comparison {
     class Program {
+        /* After C'tof input #1
+         *FORMAT      SIZE   SERIALIZE    DESERIALIZE
+            JSON:      4,062KB    82ms    34ms
+            ProtoBuff: 4,024KB   531ms   161ms
+            MsgPack:   3,905KB   490ms   144ms
+            LW:        3,918KB   206ms   194ms
+         */
+
+
         static void Main(string[] args) {
             // Open test data (Book => Chapter => Verse => Content)
             var bible = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(File.ReadAllText("esv.json"));

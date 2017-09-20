@@ -11,7 +11,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Comparison", "Comparison\Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csproj", "{C5041B22-E357-46C2-B93E-A9AD8470D1CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StressTest", "StressTest\StressTest.csproj", "{A5E70D37-67E2-4B57-8C02-5E5F9C43E0F9}"
+EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -33,6 +38,10 @@ Global
 		{C5041B22-E357-46C2-B93E-A9AD8470D1CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5041B22-E357-46C2-B93E-A9AD8470D1CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5041B22-E357-46C2-B93E-A9AD8470D1CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5E70D37-67E2-4B57-8C02-5E5F9C43E0F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5E70D37-67E2-4B57-8C02-5E5F9C43E0F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5E70D37-67E2-4B57-8C02-5E5F9C43E0F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5E70D37-67E2-4B57-8C02-5E5F9C43E0F9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
