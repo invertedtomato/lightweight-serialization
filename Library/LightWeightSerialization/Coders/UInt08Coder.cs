@@ -15,12 +15,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
         }
 
         public static byte Deserialize(Buffer<byte> buffer) {
-            var length = (int)VLQ.DecompressUnsigned(buffer);
-            var subBuffer = buffer.DequeueBuffer(length);
-
-            switch (length) {
+            switch (buffer.Readable) {
                 case 0: return 0;
-                case 1: return subBuffer.Dequeue();
+                case 1: return buffer.Dequeue();
                 default: throw new DataFormatException("UInt64 values can be 0 or 1 bytes.");
             }
         }

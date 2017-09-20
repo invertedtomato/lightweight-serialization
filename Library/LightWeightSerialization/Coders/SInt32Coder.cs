@@ -16,15 +16,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
         }
 
         public static int Deserialize(Buffer<byte> buffer) {
-            var length = (int)VLQ.DecompressUnsigned(buffer);
-            var subBuffer = buffer.DequeueBuffer(length);
-
-            switch (length) {
+            switch (buffer.Readable) {
                 case 0: return 0;
                 case 1: return buffer.Dequeue();
-                case 2: return BitConverter.ToInt16(subBuffer.GetUnderlying(), subBuffer.Start);
+                case 2: return BitConverter.ToInt16(buffer.GetUnderlying(), buffer.Start);
                 // TODO: 3
-                case 4: return BitConverter.ToInt32(subBuffer.GetUnderlying(), subBuffer.Start);
+                case 4: return BitConverter.ToInt32(buffer.GetUnderlying(), buffer.Start);
                 default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
             }
         }

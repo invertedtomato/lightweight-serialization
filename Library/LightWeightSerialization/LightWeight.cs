@@ -153,10 +153,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 #endif
 
             // Get root serilizer
-            var rootDeserilizer = (Func<Buffer<byte>, T>)GetDeserializer<T>();
+            var rootDeserilizer = GetDeserializer<T>();
 
             // Invoke root serilizer
-            return rootDeserilizer(input);
+            return (T)rootDeserilizer.DynamicInvoke(input);
         }
 
         private Delegate GetDeserializerBlind(Type type) {
@@ -261,16 +261,18 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Get deserilizer for sub items
             var innerDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[0]);
 
-            Func<Buffer<byte>, T> deserilizer = (input) => {
-                // Extract sub buffer
-                var length = (int)VLQ.DecompressUnsigned(input);
-                var subBuffer = input.DequeueBuffer(length);
-
+            Func<Buffer<byte>, T> deserilizer = (buffer) => {
                 // Instantiate list
                 var output = (IList)Activator.CreateInstance(typeof(T));//typeof(List<>).MakeGenericType(type.GenericTypeArguments)
 
                 // Deserialize until we reach length limit
-                while (subBuffer.IsReadable) {
+                while (buffer.IsReadable) {
+                    // Extract length
+                    var length = (int)VLQ.DecompressUnsigned(buffer);
+
+                    // Extract subbuffer
+                    var subBuffer = buffer.DequeueBuffer(length);
+
                     // Deserialize element
                     var element = innerDeserializer.DynamicInvoke(subBuffer);
 
@@ -305,29 +307,31 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             };
             Serializers[typeof(T)] = serilizer;
 
-            Func<Buffer<byte>, IDictionary> deserilizer = (input) => {
-                /*
-                 *   // Instantiate dictionary
-            var output = (IDictionary)Activator.CreateInstance(type); // typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments)
+            // Get deserilizer for sub items
+            var innerKeyDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[0]);
+            var innerValueDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[1]);
 
-            // Loop through input buffer until depleated
-            while (buffer.IsReadable) {
-                // Deserialize key
-                var kl = (int)VLQ.DecompressUnsigned(buffer);
-                var kb = buffer.DequeueBuffer(kl);
-                var k = Deserialize(kb, type.GenericTypeArguments[0]);
+            Func<Buffer<byte>, IDictionary> deserilizer = (buffer) => {
+                // Instantiate dictionary
+                var output = (IDictionary)Activator.CreateInstance(typeof(T));
 
-                // Deserialize value
-                var vl = (int)VLQ.DecompressUnsigned(buffer);
-                var vb = buffer.DequeueBuffer(vl);
-                var v = Deserialize(vb, type.GenericTypeArguments[1]);
+                // Loop through input buffer until depleated
+                while (buffer.IsReadable) {
+                    // Deserialize key
+                    var keyLength = (int)VLQ.DecompressUnsigned(buffer);
+                    var keyBuffer = buffer.DequeueBuffer(keyLength);
+                    var keyValue = innerKeyDeserializer.DynamicInvoke(keyBuffer);
 
-                // Add to output
-                output[k] = v;
-            }
+                    // Deserialize value
+                    var valueLength = (int)VLQ.DecompressUnsigned(buffer);
+                    var valueBuffer = buffer.DequeueBuffer(valueLength);
+                    var valueValue = innerValueDeserializer.DynamicInvoke(valueBuffer);
 
-            return output;*/
-                throw new NotImplementedException();
+                    // Add to output
+                    output[keyValue] = valueValue;
+                }
+
+                return output;
             };
             Deserializers[typeof(T)] = deserilizer;
         }
@@ -408,44 +412,49 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             var methodInfo = newType.CreateTypeInfo().GetMethod(name);
             Serializers[typeof(T)] = (Action<T, SerializationOutput>)methodInfo.CreateDelegate(typeof(Action<T, SerializationOutput>));
 
+            // Build vector of property types
+            var a = new FieldInfo[byte.MaxValue];
+            foreach (var field in typeof(T).GetRuntimeFields()) { // TODO: Add property support
+                // Get property attribute which tells us the properties' index
+                var attribute = (LightWeightPropertyAttribute)field.GetCustomAttribute(typeof(LightWeightPropertyAttribute));
 
-            Func<Buffer<byte>, T> deserilizer = (input) => {
-                /* // Instantiate output
-            var output = Activator.CreateInstance(type);
-
-            // Prepare for object deserialization
-            var index = -1;
-
-            // Attempt to read field length, if we've reached the end of the payload, abort
-            while (payload.IsReadable) {
-                // Get the length in a usable format
-                var l = (int)Codec.DecompressUnsigned(payload);
-                var b = payload.DequeueBuffer(l);
-
-                // Increment the index
-                index++;
-
-                // Iterate through each property looking for one that matches index
-                foreach (var property in type.GetRuntimeProperties()) {
-                    // Get property attribute which tells us the properties' index
-                    var attribute = (LightWeightPropertyAttribute)property.GetCustomAttribute(PropertyAttribute);
-
-                    // Skip if not found, or index doesn't match
-                    if (null == attribute || attribute.Index != index) {
-                        // No attribute found, skip
-                        continue;
-                    }
-
-                    // Deserialize value
-                    var v = Deserialize(b, property.PropertyType);
-
-                    // Set it on property
-                    property.SetValue(output, v);
+                // Skip if not found, or index doesn't match
+                if (null != attribute) {
+                    // TODO: check for dupes
+                    a[attribute.Index] = field;
+                    continue;
                 }
             }
 
-            return output;*/
-                throw new NotImplementedException();
+            Func<Buffer<byte>, T> deserilizer = (buffer) => {
+                // Instantiate output
+                var output = (T)Activator.CreateInstance(typeof(T));
+
+                // Prepare for object deserialization
+                var index = -1;
+
+                // Attempt to read field length, if we've reached the end of the payload, abort
+                while (buffer.IsReadable) {
+                    // Get the length in a usable format
+                    var length = (int)VLQ.DecompressUnsigned(buffer);
+                    var subBuffer = buffer.DequeueBuffer(length);
+
+                    // Increment the index
+                    index++;
+
+                    if (a[index] != null) {
+                        // Get deserilizer
+                        var deserializer = GetDeserializerBlind(a[index].FieldType);
+
+                        // Deserialize value
+                        var value = deserializer.DynamicInvoke(subBuffer);
+
+                        // Set it on property
+                        a[index].SetValue(output, value);
+                    }
+                }
+
+                return output;
             };
             Deserializers[typeof(T)] = deserilizer;
         }
