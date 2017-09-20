@@ -224,17 +224,33 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             };
             Serializers[typeof(T)] = serilizer;
 
-            Func<Buffer<byte>, Array> deserilizer = (input) => {
-                /*
-                 * // Deserialize temporarily as list
-            var container = DeserializeList(innerType, payload);
+            // Get deserilizer for sub items
+            var innerDeserializer = GetDeserializerBlind(typeof(T).GetElementType());
 
-            // Convert to array and return
-            var output = Array.CreateInstance(type.GetElementType(), container.Count);
-            container.CopyTo(output, 0);
+            Func<Buffer<byte>, Array> deserilizer = (buffer) => {
+                // Instantiate list
+                var container = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(typeof(T).GetElementType()));
 
-            return output;*/
-                throw new NotImplementedException();
+                // Deserialize until we reach length limit
+                while (buffer.IsReadable) {
+                    // Extract length
+                    var length = (int)VLQ.DecompressUnsigned(buffer);
+
+                    // Extract subbuffer
+                    var subBuffer = buffer.DequeueBuffer(length);
+
+                    // Deserialize element
+                    var element = innerDeserializer.DynamicInvoke(subBuffer);
+
+                    // Add to output
+                    container.Add(element);
+                }
+
+                // Convert to array and return
+                var output = Array.CreateInstance(typeof(T).GetElementType(), container.Count);
+                container.CopyTo(output, 0);
+
+                return output;
             };
             Deserializers[typeof(T)] = deserilizer;
         }
