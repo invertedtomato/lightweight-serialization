@@ -2,6 +2,7 @@
 using CommonSerializer.Jil;
 using CommonSerializer.MsgPack.Cli;
 using CommonSerializer.ProtobufNet;
+using InvertedTomato.IO.Buffers;
 using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
 using System;
@@ -11,114 +12,64 @@ using System.IO;
 
 namespace Comparison {
     class Program {
-        public const ushort TOTAL_VERSES = 31102;
-
         static void Main(string[] args) {
-            var bookNames = new string[] {
-                "Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"
-            };
+            // Open test data (Book => Chapter => Verse => Content)
+            var bible = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(File.ReadAllText("esv.json"));
 
-            // Read bible
-            // Book => Chapter => Verse => Content
-            var inputBible = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(File.ReadAllText("esv.json"));
 
-            // Open map file
-            var bible = new List<Segment>();
-
-            ushort id = 0;
-            using (var mapFile = File.CreateText("output.map")) {
-                mapFile.AutoFlush = true;
-                mapFile.WriteLine("id,book,chapter,verse");
-
-                // Process 
-                foreach (var bookName in bookNames) {
-                    var book = inputBible[bookName];
-
-                    for (var chapterIdx = 1; chapterIdx < ushort.MaxValue; chapterIdx++) {
-                        if (!book.TryGetValue(chapterIdx, out var chapter)) {
-                            break;
-                        }
-
-                        for (var verseIdx = 1; verseIdx < ushort.MaxValue; verseIdx++) {
-                            if (!chapter.TryGetValue(verseIdx, out var verse)) {
-                                break;
-                            }
-
-                            // Write map
-                            mapFile.Write(id);
-                            mapFile.Write(",");
-                            mapFile.Write(bookName.ToUpperInvariant());
-                            mapFile.Write(",");
-                            mapFile.Write(chapterIdx);
-                            mapFile.Write(",");
-                            mapFile.WriteLine(verseIdx);
-
-                            // Compose bible
-                            bible.Add(new Segment() {
-                                Mode = 0,
-                                Content = verse
-                            });
-
-                            id++;
-                        }
-                    }
-                }
+            byte[] pbOutput;
+            var pbSerialize = Stopwatch.StartNew();
+            pbOutput = (new ProtobufCommonSerializer()).SerializeToByteArray(bible);
+            pbSerialize.Stop();
+            var pbDeserialize = Stopwatch.StartNew();
+            var pbResult = (new ProtobufCommonSerializer()).Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(new MemoryStream(pbOutput));
+            if (pbResult.Count != bible.Count) {
+                Console.WriteLine("ProtoBuff DISQUALIFIED");
             }
+            pbDeserialize.Stop();
 
-            var protoBuffTimer = Stopwatch.StartNew();
-            File.WriteAllBytes("output.buff", (new ProtobufCommonSerializer()).SerializeToByteArray(bible));
-            protoBuffTimer.Stop();
 
-            var msgPackTimer = Stopwatch.StartNew();
-            File.WriteAllBytes("output.msg", (new MsgPackCommonSerializer()).SerializeToByteArray(bible));
-            msgPackTimer.Stop();
+            byte[] mpOutput;
+            var mpSerialize = Stopwatch.StartNew();
+            mpOutput = (new MsgPackCommonSerializer()).SerializeToByteArray(bible);
+            mpSerialize.Stop();
+            var mpDeserialize = Stopwatch.StartNew();
+            var mpResult = (new MsgPackCommonSerializer()).Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(new MemoryStream(mpOutput));
+            if (mpResult.Count != bible.Count) {
+                Console.WriteLine("MsgPack DISQUALIFIED");
+            }
+            mpDeserialize.Stop();
 
-            var jilTimer = Stopwatch.StartNew();
-            File.WriteAllBytes("output.jil", (new JilCommonSerializer()).SerializeToByteArray(bible));
-            jilTimer.Stop();
+            string nsOutput;
+            var nsSerialize = Stopwatch.StartNew();
+            nsOutput = JsonConvert.SerializeObject(bible);
+            nsSerialize.Stop();
+            var nsDeserialize = Stopwatch.StartNew();
+            var nsResult = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(nsOutput);
+            if (nsResult.Count != bible.Count) {
+                Console.WriteLine("Json DISQUALIFIED");
+            }
+            nsDeserialize.Stop();
 
-            var jsonTimer = Stopwatch.StartNew();
-            File.WriteAllText("output.json", JsonConvert.SerializeObject(bible));
-            jsonTimer.Stop();
+            var lw = new LightWeight(new LightWeightOptions());
+            lw.PrepareFor<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(); // Cheating? Not sure.
+            Buffer<byte> lwOutput = new Buffer<byte>(100);
+            lwOutput.AutoGrow = true;
+            var lwSerialize = Stopwatch.StartNew();
+            lw.Serialize(bible, lwOutput);
+            lwSerialize.Stop();
+            var lwDeserialize = Stopwatch.StartNew();
+            var lwResult = lw.Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
+            if (lwResult.Count != bible.Count) {
+                Console.WriteLine("LightWeight DISQUALIFIED");
+            }
+            lwSerialize.Stop();
 
-            var lwTimer = Stopwatch.StartNew();
-            File.WriteAllBytes("output.lw", LightWeight.Serialize(bible));
-            lwTimer.Stop();
-
-            Console.WriteLine("SERIALIZE");
-            Console.WriteLine("Jil:       {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.jil").Length / 1024, jilTimer.ElapsedMilliseconds);
-            Console.WriteLine("JSON:      {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.json").Length / 1024, jsonTimer.ElapsedMilliseconds);
-            Console.WriteLine("ProtoBuff: {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.buff").Length / 1024, protoBuffTimer.ElapsedMilliseconds);
-            Console.WriteLine("MsgPack:   {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.msg").Length / 1024, msgPackTimer.ElapsedMilliseconds);
-            Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms", File.OpenRead("output.lw").Length / 1024, lwTimer.ElapsedMilliseconds);
-            /*
-            protoBuffTimer = Stopwatch.StartNew();
-            (new ProtobufCommonSerializer()).Deserialize<List<Segment>>(File.ReadAllText("output.buff"));
-            protoBuffTimer.Stop();
-
-            msgPackTimer = Stopwatch.StartNew();
-            (new MsgPackCommonSerializer()).Deserialize<List<Segment>>(File.ReadAllText("output.msg"));
-            msgPackTimer.Stop();
-
-            jilTimer = Stopwatch.StartNew();
-            (new JilCommonSerializer()).Deserialize<List<Segment>>(File.ReadAllText("output.jil"));
-            jilTimer.Stop();
-            */
-            jsonTimer = Stopwatch.StartNew();
-            JsonConvert.DeserializeObject<List<Segment>>(File.ReadAllText("output.json"));
-            jsonTimer.Stop();
-
-            lwTimer = Stopwatch.StartNew();
-            LightWeight.Deserialize<List<Segment>>(File.ReadAllBytes("output.lw"));
-            lwTimer.Stop();
-
-            Console.WriteLine("DESERIALIZE");
-            //Console.WriteLine("Jil:       {0,5:N0}ms", jilTimer.ElapsedMilliseconds);
-            Console.WriteLine("JSON:      {0,5:N0}ms", jsonTimer.ElapsedMilliseconds);
-            //Console.WriteLine("ProtoBuff: {0,5:N0}ms",  protoBuffTimer.ElapsedMilliseconds);
-            //Console.WriteLine("MsgPack:   {0,5:N0}ms",  msgPackTimer.ElapsedMilliseconds);
-            Console.WriteLine("LW:        {0,5:N0}ms",  lwTimer.ElapsedMilliseconds);
-
+            Console.WriteLine("FORMAT      SIZE   SERIALIZE    DESERIALIZE");
+            Console.WriteLine("JSON:      {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", nsOutput.Length / 1024, nsSerialize.ElapsedMilliseconds, nsDeserialize.ElapsedMilliseconds);
+            Console.WriteLine("ProtoBuff: {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", pbOutput.Length / 1024, pbSerialize.ElapsedMilliseconds, pbDeserialize.ElapsedMilliseconds);
+            Console.WriteLine("MsgPack:   {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", mpOutput.Length / 1024, mpSerialize.ElapsedMilliseconds, mpDeserialize.ElapsedMilliseconds);
+            Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", lwOutput.End / 1024, lwSerialize.ElapsedMilliseconds, lwDeserialize.ElapsedMilliseconds);
 
             Console.WriteLine("Done.");
             Console.ReadKey(true);

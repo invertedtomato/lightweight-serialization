@@ -56,7 +56,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
         }
 
 
-
+        // TODO serilized buffer start in wrong position
 
         private readonly TypeInfo IListTypeInfo = typeof(IList).GetTypeInfo();
         private readonly TypeInfo IDictionaryTypeInfo = typeof(IDictionary).GetTypeInfo();
