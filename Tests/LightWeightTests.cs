@@ -20,9 +20,9 @@ public class LightWeightTests {
 
         Assert.Equal(new byte[] {
             0x81, // [0]
-                0xff, // true
+                0x00, // true
             0x81, // [1]
-                0xff, // true
+                0x00, // true
             0x80 // [2]
                 // false
         }, serialized);
@@ -235,9 +235,9 @@ public class LightWeightTests {
     public void Deserialize_Array_Bool() {
         var result = LightWeight.Deserialize<bool[]>(new byte[] {
             0x81, // [0]
-                0xff, // true
+                0x00, // true
             0x81, // [1]
-                0xff, // true
+                0x00, // true
             0x80, // [2]
                 // false
         });
@@ -367,7 +367,7 @@ public class LightWeightTests {
     }
 
     [Fact]
-    public void Deserialize_Object_Empty() {
+    public void Deserialize_POCO_Empty() {
         var result = LightWeight.Deserialize<Empty>(new byte[] { });
 
         Assert.Equal(0, result.A);
@@ -375,7 +375,7 @@ public class LightWeightTests {
         Assert.Equal(0, result.C);
     }
     [Fact]
-    public void Deserialize_Object_Basic() {
+    public void Deserialize_POCO_Basic() {
         var result = LightWeight.Deserialize<ThreeInts>(new byte[] {
             0x81,// B=
                 0x09, // 9
@@ -390,7 +390,7 @@ public class LightWeightTests {
         Assert.Equal(1000, result.C);
     }
     [Fact]
-    public void Deserialize_Object_Complex() {
+    public void Deserialize_POCO_Complex() {
         var result = LightWeight.Deserialize<Layered>(new byte[] {
             0x84, // Y=
                 0x74,0x65,0x73,0x74, // "test"

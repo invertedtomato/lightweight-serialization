@@ -4,14 +4,11 @@ using System;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class SInt64Coder {
-        private static VLQCodec VLQ = new VLQCodec();
-
-        public static void Serialize(long value, SerializationOutput output) {
+        public static ScatterTreeBuffer Serialize(long value) {
             if (value <= int.MaxValue && value >= int.MinValue) {
-                SInt32Coder.Serialize((int)value, output);
+                return SInt32Coder.Serialize((int)value);
             } else { // TODO: 5, 6, 7 byte encoding
-                output.AddRaw(VLQCodec.Nil + 8);
-                output.AddRawArray(BitConverter.GetBytes(value));
+                return new ScatterTreeBuffer(BitConverter.GetBytes(value));
             }
         }
 

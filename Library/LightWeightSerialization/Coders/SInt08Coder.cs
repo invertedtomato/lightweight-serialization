@@ -5,11 +5,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class SInt8Coder {
         private static VLQCodec VLQ = new VLQCodec();
 
-        public static void Serialize(sbyte value, SerializationOutput output) {
+        public static ScatterTreeBuffer Serialize(sbyte value) {
             if (value == 0) {
-                output.AddRaw(VLQCodec.Nil);
+                return ScatterTreeBuffer.Empty;
             } else {
-                output.AddRawArray(new byte[] { VLQCodec.Nil+1, (byte)value });
+                return new ScatterTreeBuffer(new byte[] { (byte)value });
             }
         }
 

@@ -5,13 +5,11 @@ using System.Text;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class StringCoder {
-        private static VLQCodec VLQ = new VLQCodec();
-
-        public static void Serialize(string value, SerializationOutput output) {
+        public static ScatterTreeBuffer Serialize(string value) {
             if (null == value) {
-                output.AddRaw(VLQCodec.Nil);
+                return ScatterTreeBuffer.Empty;
             } else {
-                output.AddArray(Encoding.UTF8.GetBytes(value));
+                return new ScatterTreeBuffer(Encoding.UTF8.GetBytes(value));
             }
         }
 

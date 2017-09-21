@@ -1,14 +1,12 @@
-﻿using InvertedTomato.Compression.Integers;
-using InvertedTomato.IO.Buffers;
-using System;
+﻿using InvertedTomato.IO.Buffers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public static class BoolCoder {
-        public static void Serialize(bool value, SerializationOutput output) {
+        public static ScatterTreeBuffer Serialize(bool value) {
             if (value) {
-                output.AddRawArray(new byte[] { VLQCodec.Nil + 1, 0xff });
+                return new ScatterTreeBuffer(new byte[] { 0x00 });
             } else {
-                output.AddRaw(VLQCodec.Nil);
+                return new ScatterTreeBuffer(new byte[] { });
             }
         }
 
@@ -21,8 +19,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
                 throw new DataFormatException("Boolean values can be no more than 1 byte long.");
             }
 #endif
-            if (buffer.Dequeue() != byte.MaxValue) {
-                throw new DataFormatException("Boolean values cannot be anything other than 0xFF.");
+            if (buffer.Dequeue() != 0x00) {
+                throw new DataFormatException("Boolean values cannot be anything other than 0x00.");
             }
 
             return true;

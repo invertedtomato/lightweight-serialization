@@ -76,16 +76,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             Options = options;
 
             // Load primative serilizers
-            Serializers.Add(typeof(bool), (Action<bool, SerializationOutput>)BoolCoder.Serialize);
-            Serializers.Add(typeof(sbyte), (Action<sbyte, SerializationOutput>)SInt8Coder.Serialize);
-            Serializers.Add(typeof(short), (Action<short, SerializationOutput>)SInt16Coder.Serialize);
-            Serializers.Add(typeof(int), (Action<int, SerializationOutput>)SInt32Coder.Serialize);
-            Serializers.Add(typeof(long), (Action<long, SerializationOutput>)SInt64Coder.Serialize);
-            Serializers.Add(typeof(byte), (Action<byte, SerializationOutput>)UInt8Coder.Serialize);
-            Serializers.Add(typeof(ushort), (Action<ushort, SerializationOutput>)UInt16Coder.Serialize);
-            Serializers.Add(typeof(uint), (Action<uint, SerializationOutput>)UInt32Coder.Serialize);
-            Serializers.Add(typeof(ulong), (Action<ulong, SerializationOutput>)UInt64Coder.Serialize);
-            Serializers.Add(typeof(string), (Action<string, SerializationOutput>)StringCoder.Serialize);
+            Serializers.Add(typeof(bool), (Func<bool, ScatterTreeBuffer>)BoolCoder.Serialize);
+            Serializers.Add(typeof(sbyte), (Func<sbyte, ScatterTreeBuffer>)SInt8Coder.Serialize);
+            Serializers.Add(typeof(short), (Func<short, ScatterTreeBuffer>)SInt16Coder.Serialize);
+            Serializers.Add(typeof(int), (Func<int, ScatterTreeBuffer>)SInt32Coder.Serialize);
+            Serializers.Add(typeof(long), (Func<long, ScatterTreeBuffer>)SInt64Coder.Serialize);
+            Serializers.Add(typeof(byte), (Func<byte, ScatterTreeBuffer>)UInt8Coder.Serialize);
+            Serializers.Add(typeof(ushort), (Func<ushort, ScatterTreeBuffer>)UInt16Coder.Serialize);
+            Serializers.Add(typeof(uint), (Func<uint, ScatterTreeBuffer>)UInt32Coder.Serialize);
+            Serializers.Add(typeof(ulong), (Func<ulong, ScatterTreeBuffer>)UInt64Coder.Serialize);
+            Serializers.Add(typeof(string), (Func<string, ScatterTreeBuffer>)StringCoder.Serialize);
 
             // Load primative deserializers
             Deserializers.Add(typeof(bool), (Func<Buffer<byte>, bool>)BoolCoder.Deserialize);
@@ -114,17 +114,25 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             }
 #endif
 
-            // Create output
-            var output = new SerializationOutput();
 
             // Get root serilizer
-            var rootSerilizer = (Action<T, SerializationOutput>)GetSerializer<T>();
+            var rootSerilizer = (Func<T, ScatterTreeBuffer>)GetSerializer<T>();
 
             // Invoke root serilizer
-            rootSerilizer(value, output);
+            var output = rootSerilizer(value);
 
-            // Write to provided buffer
-            output.Generate(buffer);
+            Squash(output, buffer);
+        }
+
+        private void Squash(ScatterTreeBuffer output, Buffer<byte> buffer) {
+            if (output.Payload != null) {
+                buffer.EnqueueArray(output.Payload);
+            } else {
+                foreach (var child in output.Children) {
+                    VLQ.CompressUnsigned((ulong)child.Length, buffer);
+                    Squash(child, buffer);
+                }
+            }
         }
 
         private Delegate GetSerializerBlind(Type type) {
@@ -204,23 +212,20 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Get serilizer for sub items
             var innerSerializer = GetSerializerBlind(typeof(T).GetElementType());
 
-            Action<Array, SerializationOutput> serilizer = (value, buffer) => {
+            Func<Array, ScatterTreeBuffer> serilizer = (value) => {
+                // Handle nulls
                 if (null == value) {
-                    buffer.AddRaw(VLQCodec.Nil);
-                    return;
+                    return ScatterTreeBuffer.Empty;
                 }
-
-                // Allocate space for a length header
-                var allocateId = buffer.Allocate();
-                var initialLength = buffer.Length;
 
                 // Serialize elements
+                var pos = 0;
+                var result = new ScatterTreeBuffer[value.Length];
                 foreach (var element in value) {
-                    innerSerializer.DynamicInvoke(element, buffer);
+                    result[pos++] = (ScatterTreeBuffer)innerSerializer.DynamicInvoke(element);
                 }
 
-                // Set length header
-                buffer.SetVLQ(allocateId, (ulong)(buffer.Length - initialLength));
+                return new ScatterTreeBuffer(result);
             };
             Serializers[typeof(T)] = serilizer;
 
@@ -259,18 +264,20 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Get serilizer for sub items
             var innerSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
 
-            Action<IList, SerializationOutput> serilizer = (value, buffer) => {
-                // Allocate space for a length header
-                var allocateId = buffer.Allocate();
-                var initialLength = buffer.Length;
-
-                // Serialize elements
-                foreach (var element in value) {
-                    innerSerializer.DynamicInvoke(element, buffer);
+            Func<IList, ScatterTreeBuffer> serilizer = (value) => {
+                // Handle nulls
+                if (null == value) {
+                    return ScatterTreeBuffer.Empty;
                 }
 
-                // Set length header
-                buffer.SetVLQ(allocateId, (ulong)(buffer.Length - initialLength));
+                // Serialize elements
+                var pos = 0;
+                var result = new ScatterTreeBuffer[value.Count];
+                foreach (var element in value) {
+                    result[pos++] = (ScatterTreeBuffer)innerSerializer.DynamicInvoke(element);
+                }
+
+                return new ScatterTreeBuffer(result);
             };
             Serializers[typeof(T)] = serilizer;
 
@@ -306,20 +313,22 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             var innerKeySerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
             var innerValueSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[1]);
 
-            Action<IDictionary, SerializationOutput> serilizer = (value, buffer) => {
-                // Allocate space for a length header
-                var allocateId = buffer.Allocate();
-                var initialLength = buffer.Length;
-
-                // Serialize elements
-                var e = value.GetEnumerator();
-                while (e.MoveNext()) {
-                    innerKeySerializer.DynamicInvoke(e.Key, buffer);
-                    innerValueSerializer.DynamicInvoke(e.Value, buffer);
+            Func<IDictionary, ScatterTreeBuffer> serilizer = (value) => {
+                // Handle nulls
+                if (null == value) {
+                    return ScatterTreeBuffer.Empty;
                 }
 
-                // Set length header
-                buffer.SetVLQ(allocateId, (ulong)(buffer.Length - initialLength));
+                // Serialize elements   
+                var pos = 0;
+                var result = new ScatterTreeBuffer[value.Count * 2];
+                var e = value.GetEnumerator();
+                while (e.MoveNext()) {
+                    result[pos++] = (ScatterTreeBuffer)innerKeySerializer.DynamicInvoke(e.Key);
+                    result[pos++] = (ScatterTreeBuffer)innerValueSerializer.DynamicInvoke(e.Value);
+                }
+
+                return new ScatterTreeBuffer(result);
             };
             Serializers[typeof(T)] = serilizer;
 
@@ -356,7 +365,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Create method
             var name = typeof(T).Name + "_Serilizer";
             var newType = DynamicModule.DefineType(name, TypeAttributes.Public);
-            var newMethod = newType.DefineMethod(name, MethodAttributes.Static | MethodAttributes.Public, null, new Type[] { typeof(T), typeof(SerializationOutput) });
+            var newMethod = newType.DefineMethod(name, MethodAttributes.Static | MethodAttributes.Public, typeof(ScatterTreeBuffer), new Type[] { typeof(T) });
 
             // Add  IL
             var il = newMethod.GetILGenerator();
@@ -426,12 +435,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
             // Add to serilizers
             var methodInfo = newType.CreateTypeInfo().GetMethod(name);
-            Serializers[typeof(T)] = (Action<T, SerializationOutput>)methodInfo.CreateDelegate(typeof(Action<T, SerializationOutput>));
+            Serializers[typeof(T)] = (Func<T, ScatterTreeBuffer>)methodInfo.CreateDelegate(typeof(Func<T, ScatterTreeBuffer>));
 
             // Build vector of property types
             var a = new FieldInfo[byte.MaxValue];
             foreach (var field in typeof(T).GetRuntimeFields()) { // TODO: Add property support
-                // Get property attribute which tells us the properties' index
+                                                                  // Get property attribute which tells us the properties' index
                 var attribute = (LightWeightPropertyAttribute)field.GetCustomAttribute(typeof(LightWeightPropertyAttribute));
 
                 // Skip if not found, or index doesn't match

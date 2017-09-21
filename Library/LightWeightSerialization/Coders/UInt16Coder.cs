@@ -6,12 +6,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.Coders {
     public class UInt16Coder {
         private static VLQCodec VLQ = new VLQCodec();
 
-        public static void Serialize(ushort value, SerializationOutput output) {
+        public static ScatterTreeBuffer Serialize(ushort value) {
             if (value <= byte.MaxValue) {
-                UInt8Coder.Serialize((byte)value, output);
+                return UInt8Coder.Serialize((byte)value);
             } else {
-                output.AddRaw(VLQCodec.Nil + 2);
-                output.AddRawArray(BitConverter.GetBytes(value));
+                return new ScatterTreeBuffer(BitConverter.GetBytes(value));
             }
         }
 
