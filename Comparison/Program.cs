@@ -74,8 +74,7 @@ namespace Comparison {
             lw.Serialize(bible, lwOutput);
             lwSerialize.Stop();
             var lwDeserialize = Stopwatch.StartNew();
-            var lwResult = bible;// lw.Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
-            //////////////////!!!!
+            var lwResult = lw.Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
             if (lwResult.Count != bible.Count) {
                 Console.WriteLine("LightWeight DISQUALIFIED");
             }
@@ -85,7 +84,7 @@ namespace Comparison {
             Console.WriteLine("JSON:      {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", nsOutput.Length / 1024, nsSerialize.ElapsedMilliseconds, nsDeserialize.ElapsedMilliseconds);
             Console.WriteLine("ProtoBuff: {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", pbOutput.Length / 1024, pbSerialize.ElapsedMilliseconds, pbDeserialize.ElapsedMilliseconds);
             Console.WriteLine("MsgPack:   {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", mpOutput.Length / 1024, mpSerialize.ElapsedMilliseconds, mpDeserialize.ElapsedMilliseconds);
-            Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", lwOutput.End / 1024, lwSerialize.ElapsedMilliseconds, lwDeserialize.ElapsedMilliseconds);
+            Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", lwOutput.Readable / 1024, lwSerialize.ElapsedMilliseconds, lwDeserialize.ElapsedMilliseconds);
 
             Console.WriteLine("Done.");
             Console.ReadKey(true);

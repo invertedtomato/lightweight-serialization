@@ -121,6 +121,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             // Invoke root serilizer
             var output = rootSerilizer(value);
 
+            // Grow buffer with sufficent room
+            buffer.Grow(Math.Max(0, output.Length + output.Count * 10- buffer.Writable));
+
+            // Squash scatter tree into buffer
             Squash(output, buffer);
         }
 
