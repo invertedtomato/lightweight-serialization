@@ -151,6 +151,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 return GenerateDictionaryEncoder<T>();
             }
 
+            if (typeof(T).GetTypeInfo().IsClass) {
+                return GeneratePOCOEncoder<T>();
+            }
+
             throw new NotSupportedException();
         }
         protected Delegate GenerateDecoderFor<T>() {
@@ -196,6 +200,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             }
             if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T))) {
                 return GenerateDictionaryDecoder<T>();
+            }
+
+            if (typeof(T).GetTypeInfo().IsClass) {
+                return GeneratePOCODecoder<T>();
             }
 
             throw new NotSupportedException();
