@@ -1,113 +1,33 @@
 ﻿using InvertedTomato.Compression.Integers;
 using InvertedTomato.IO.Buffers;
-using InvertedTomato.Serialization.LightWeightSerialization.Coders;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text;
+using System.Linq;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
     public class LightWeight : ISerializer {
-        /// <summary>
-        /// Serialize a value to a byte array.
-        /// </summary>
-        public static byte[] Serialize<T>(T value) {
-            return Serialize(value, new LightWeightOptions());
-        }
-
-        /// <summary>
-        /// Serialize a value to a byte array, with options.
-        /// </summary>
-        public static byte[] Serialize<T>(T value, LightWeightOptions options) {
-#if DEBUG
-            if (null == options) {
-                throw new ArgumentNullException(nameof(options));
-            }
-#endif
-
-            var buffer = new Buffer<byte>(options.DefaultInitialBufferSize);
-            var lw = new LightWeight(options);
-            lw.Serialize(value, buffer);
-            return buffer.ToArray();
-
-        }
-
-        /// <summary>
-        /// Deserialize a value from a byte array.
-        /// </summary>
-        public static T Deserialize<T>(byte[] payload) {
-            return Deserialize<T>(payload, new LightWeightOptions());
-        }
-
-        /// <summary>
-        /// Deserialize a value from a byte array, with options.
-        /// </summary>
-        public static T Deserialize<T>(byte[] payload, LightWeightOptions options) {
-#if DEBUG
-            if (null == payload) {
-                throw new ArgumentNullException("payload");
-            }
-#endif
-
-            var lw = new LightWeight(options);
-            return lw.Deserialize<T>(new Buffer<byte>(payload));
-        }
-
-
-        // TODO serilized buffer start in wrong position
-
-        private readonly TypeInfo IListTypeInfo = typeof(IList).GetTypeInfo();
-        private readonly TypeInfo IDictionaryTypeInfo = typeof(IDictionary).GetTypeInfo();
-        private readonly LightWeightOptions Options;
-        private readonly Dictionary<Type, Delegate> Serializers = new Dictionary<Type, Delegate>();
-        private readonly Dictionary<Type, Delegate> Deserializers = new Dictionary<Type, Delegate>();
-        private readonly ModuleBuilder DynamicModule;
+        private readonly object Sync = new object();
+        private readonly Dictionary<Type, Delegate> Encoders = new Dictionary<Type, Delegate>(); // Func<T, TIn>
+        private readonly Dictionary<Type, Delegate> Decoders = new Dictionary<Type, Delegate>(); // Func<TOut, T>
         private readonly VLQCodec VLQ = new VLQCodec();
+        private readonly ModuleBuilder DynamicModule;
 
-        public LightWeight(LightWeightOptions options) {
-#if DEBUG
-            if (null == options) {
-                throw new ArgumentNullException("options");
-            }
-#endif
-
-            Options = options;
-
-            // Load primative serilizers
-            Serializers.Add(typeof(bool), (Func<bool, ScatterTreeBuffer>)BoolCoder.Serialize);
-            Serializers.Add(typeof(sbyte), (Func<sbyte, ScatterTreeBuffer>)SInt8Coder.Serialize);
-            Serializers.Add(typeof(short), (Func<short, ScatterTreeBuffer>)SInt16Coder.Serialize);
-            Serializers.Add(typeof(int), (Func<int, ScatterTreeBuffer>)SInt32Coder.Serialize);
-            Serializers.Add(typeof(long), (Func<long, ScatterTreeBuffer>)SInt64Coder.Serialize);
-            Serializers.Add(typeof(byte), (Func<byte, ScatterTreeBuffer>)UInt8Coder.Serialize);
-            Serializers.Add(typeof(ushort), (Func<ushort, ScatterTreeBuffer>)UInt16Coder.Serialize);
-            Serializers.Add(typeof(uint), (Func<uint, ScatterTreeBuffer>)UInt32Coder.Serialize);
-            Serializers.Add(typeof(ulong), (Func<ulong, ScatterTreeBuffer>)UInt64Coder.Serialize);
-            Serializers.Add(typeof(string), (Func<string, ScatterTreeBuffer>)StringCoder.Serialize);
-
-            // Load primative deserializers
-            Deserializers.Add(typeof(bool), (Func<Buffer<byte>, bool>)BoolCoder.Deserialize);
-            Deserializers.Add(typeof(sbyte), (Func<Buffer<byte>, sbyte>)SInt8Coder.Deserialize);
-            Deserializers.Add(typeof(short), (Func<Buffer<byte>, short>)SInt16Coder.Deserialize);
-            Deserializers.Add(typeof(int), (Func<Buffer<byte>, int>)SInt32Coder.Deserialize);
-            Deserializers.Add(typeof(long), (Func<Buffer<byte>, long>)SInt64Coder.Deserialize);
-            Deserializers.Add(typeof(byte), (Func<Buffer<byte>, byte>)UInt8Coder.Deserialize);
-            Deserializers.Add(typeof(ushort), (Func<Buffer<byte>, ushort>)UInt16Coder.Deserialize);
-            Deserializers.Add(typeof(uint), (Func<Buffer<byte>, uint>)UInt32Coder.Deserialize);
-            Deserializers.Add(typeof(ulong), (Func<Buffer<byte>, ulong>)UInt64Coder.Deserialize);
-            Deserializers.Add(typeof(string), (Func<Buffer<byte>, string>)StringCoder.Deserialize);
-
+        public LightWeight() {
             // Prepare assembly for dynamic serilizers/deserilizers
             var dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("DynamicCoders"), AssemblyBuilderAccess.Run);
             DynamicModule = dynamicAssembly.DefineDynamicModule("DynamicCoders");
         }
 
-        /// <summary>
-        /// Serialise a value to a given buffer.
-        /// </summary>
-        public void Serialize<T>(T value, Buffer<byte> buffer) {
+        public void PrepareFor<T>() {
+            Encoders[typeof(T)] = GenerateEncoderFor<T>();
+            Decoders[typeof(T)] = GenerateDecoderFor<T>();
+        }
+
+        public void Encode<T>(T value, Buffer<byte> buffer) {
 #if DEBUG
             if (null == buffer) {
                 throw new ArgumentNullException(nameof(buffer));
@@ -116,16 +36,63 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 
             // Get root serilizer
-            var rootSerilizer = (Func<T, ScatterTreeBuffer>)GetSerializer<T>();
+            var rootSerilizer = (Func<T, ScatterTreeBuffer>)GetEncoder<T>();
 
             // Invoke root serilizer
             var output = rootSerilizer(value);
 
             // Grow buffer with sufficent room
-            buffer.Grow(Math.Max(0, output.Length + output.Count * 10- buffer.Writable));
+            buffer.Grow(Math.Max(0, output.Length + output.Count * 10 - buffer.Writable));
 
             // Squash scatter tree into buffer
             Squash(output, buffer);
+        }
+        public T Decode<T>(Buffer<byte> input) {
+#if DEBUG
+            if (null == input) {
+                throw new ArgumentNullException(nameof(input));
+            }
+#endif
+
+            // Get root serilizer
+            var root = GetDecoder<T>();
+
+            // Invoke root serilizer
+            return (T)root.DynamicInvoke(input);
+        }
+
+        protected Delegate GetEncoder<T>() {
+            lock (Sync) {
+                // If there's no coder, build one
+                if (!Encoders.TryGetValue(typeof(T), out var encoder)) {
+                    PrepareFor<T>();
+                    encoder = Encoders[typeof(T)];
+                }
+
+                // Return coder
+                return encoder;
+            }
+        }
+        protected Delegate GetEncoder(Type type) {
+            var method = GetType().GetRuntimeMethods().Single(a => a.Name == nameof(GetEncoder) && a.IsGenericMethod).MakeGenericMethod(type);
+            return (Delegate)method.Invoke(this, null);
+        }
+
+        protected Delegate GetDecoder<T>() {
+            lock (Sync) {
+                // If there's no coder, build one
+                if (!Decoders.TryGetValue(typeof(T), out var decoder)) {
+                    PrepareFor<T>();
+                    decoder = Decoders[typeof(T)];
+                }
+
+                // Return coder
+                return decoder;
+            }
+        }
+        protected Delegate GetDecoder(Type type) {
+            var method = GetType().GetRuntimeMethods().Single(a => a.Name == nameof(GetDecoder) && a.IsGenericMethod).MakeGenericMethod(type); // "typeof(LightWeight).GetRuntimeMethod(nameof(EnsureSerializer), new Type[] { })" returns NULL for generics - why?
+            return (Delegate)method.Invoke(this, null);
         }
 
         private void Squash(ScatterTreeBuffer output, Buffer<byte> buffer) {
@@ -139,84 +106,324 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             }
         }
 
-        private Delegate GetSerializerBlind(Type type) {
-            var method = typeof(LightWeight).GetRuntimeMethods().Single(a => a.Name == nameof(GetSerializer)).MakeGenericMethod(type); // "typeof(LightWeight).GetRuntimeMethod(nameof(EnsureSerializer), new Type[] { })" returns NULL for generics - why?
-            return (Delegate)method.Invoke(this, null);
-        }
-        private Delegate GetSerializer<T>() {
-            // If there's no coder, build one
-            if (!Serializers.TryGetValue(typeof(T), out var serilizer)) {
-                PrepareFor<T>();
-                serilizer = Serializers[typeof(T)];
+        protected Delegate GenerateEncoderFor<T>() {
+            if (typeof(T) == typeof(bool)) {
+                return GenerateBoolEncoder();
             }
 
-            // Return coder
-            return serilizer;
-        }
-
-        /// <summary>
-        /// Deserialize a value from a buffer.
-        /// </summary>
-        public T Deserialize<T>(Buffer<byte> input) {
-#if DEBUG
-            if (null == input) {
-                throw new ArgumentNullException(nameof(input));
+            if (typeof(T) == typeof(sbyte)) {
+                return GenerateSInt8Encoder();
             }
-#endif
-
-            // Get root serilizer
-            var rootDeserilizer = GetDeserializer<T>();
-
-            // Invoke root serilizer
-            return (T)rootDeserilizer.DynamicInvoke(input);
-        }
-
-        private Delegate GetDeserializerBlind(Type type) {
-            var method = typeof(LightWeight).GetRuntimeMethods().Single(a => a.Name == nameof(GetDeserializer)).MakeGenericMethod(type); // "typeof(LightWeight).GetRuntimeMethod(nameof(EnsureSerializer), new Type[] { })" returns NULL for generics - why?
-            return (Delegate)method.Invoke(this, null);
-        }
-        private Delegate GetDeserializer<T>() {
-            // If there's no coder, build one
-            if (!Deserializers.TryGetValue(typeof(T), out var deserilizer)) {
-                PrepareFor<T>();
-                deserilizer = Deserializers[typeof(T)];
+            if (typeof(T) == typeof(short)) {
+                return GenerateSInt16Encoder();
+            }
+            if (typeof(T) == typeof(int)) {
+                return GenerateSInt32Encoder();
+            }
+            if (typeof(T) == typeof(long)) {
+                return GenerateSInt64Encoder();
             }
 
-            // Return coder
-            return deserilizer;
-        }
+            if (typeof(T) == typeof(byte)) {
+                return GenerateUInt8Encoder();
+            }
+            if (typeof(T) == typeof(ushort)) {
+                return GenerateUInt16Encoder();
+            }
+            if (typeof(T) == typeof(uint)) {
+                return GenerateUInt32Encoder();
+            }
+            if (typeof(T) == typeof(ulong)) {
+                return GenerateUInt64Encoder();
+            }
 
+            if (typeof(T) == typeof(string)) {
+                return GenerateStringEncoder();
+            }
 
-
-        /// <summary>
-        /// Have the system compile serializer/deserializers for the given type.
-        /// </summary>
-        /// <remarks>
-        /// Useful to run in advance if you don't want first-call delays.
-        /// </remarks>
-        public void PrepareFor<T>() {
             if (typeof(T).IsArray) {
-                PrepareForArray<T>();
-                return;
+                return GenerateArrayEncoder<T>();
             }
-            var t = typeof(T).GetTypeInfo();
-            if (IListTypeInfo.IsAssignableFrom(t)) {
-                PrepareForList<T>();
-                return;
+            if (typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T))) {
+                return GenerateListEncoder<T>();
             }
-            if (IDictionaryTypeInfo.IsAssignableFrom(t)) {
-                PrepareForDictionary<T>();
-                return;
+            if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T))) {
+                return GenerateDictionaryEncoder<T>();
             }
 
-            PrepareForPOCO<T>();
+            throw new NotSupportedException();
+        }
+        protected Delegate GenerateDecoderFor<T>() {
+            if (typeof(T) == typeof(bool)) {
+                return GenerateBoolDecoder();
+            }
+
+            if (typeof(T) == typeof(sbyte)) {
+                return GenerateSInt8Decoder();
+            }
+            if (typeof(T) == typeof(short)) {
+                return GenerateSInt16Decoder();
+            }
+            if (typeof(T) == typeof(int)) {
+                return GenerateSInt32Decoder();
+            }
+            if (typeof(T) == typeof(long)) {
+                return GenerateSInt64Decoder();
+            }
+
+            if (typeof(T) == typeof(byte)) {
+                return GenerateUInt8Decoder();
+            }
+            if (typeof(T) == typeof(ushort)) {
+                return GenerateUInt16Decoder();
+            }
+            if (typeof(T) == typeof(uint)) {
+                return GenerateUInt32Decoder();
+            }
+            if (typeof(T) == typeof(ulong)) {
+                return GenerateUInt64Decoder();
+            }
+
+            if (typeof(T) == typeof(string)) {
+                return GenerateStringDecoder();
+            }
+
+            if (typeof(T).IsArray) {
+                return GenerateArrayDecoder<T>();
+            }
+            if (typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T))) {
+                return GenerateListDecoder<T>();
+            }
+            if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T))) {
+                return GenerateDictionaryDecoder<T>();
+            }
+
+            throw new NotSupportedException();
         }
 
-        private void PrepareForArray<T>() {
-            // Get serilizer for sub items
-            var innerSerializer = GetSerializerBlind(typeof(T).GetElementType());
+        private Func<bool, ScatterTreeBuffer> GenerateBoolEncoder() {
+            return (value) => {
+                if (value) {
+                    return new ScatterTreeBuffer(new byte[] { 0x00 });
+                } else {
+                    return new ScatterTreeBuffer(new byte[] { });
+                }
+            };
+        }
+        private Func<Buffer<byte>, bool> GenerateBoolDecoder() {
+            return (buffer) => {
+                if (buffer.Readable == 0) {
+                    return false;
+                }
+#if DEBUG
+                if (buffer.Readable > 1) {
+                    throw new DataFormatException("Boolean values can be no more than 1 byte long.");
+                }
+#endif
+                if (buffer.Dequeue() != 0x00) {
+                    throw new DataFormatException("Boolean values cannot be anything other than 0x00.");
+                }
 
-            Func<Array, ScatterTreeBuffer> serilizer = (value) => {
+                return true;
+            };
+        }
+
+        private Func<sbyte, ScatterTreeBuffer> GenerateSInt8Encoder() {
+            return (value) => {
+                if (value == 0) {
+                    return ScatterTreeBuffer.Empty;
+                } else {
+                    return new ScatterTreeBuffer(new byte[] { (byte)value });
+                }
+            };
+        }
+        private Func<Buffer<byte>, sbyte> GenerateSInt8Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return (sbyte)buffer.Dequeue();
+                    default: throw new DataFormatException("SInt64 values can be 0 or 1 bytes.");
+                }
+            };
+        }
+
+        private Func<short, ScatterTreeBuffer> GenerateSInt16Encoder() {
+            var smaller = GenerateSInt8Encoder();
+            return (value) => {
+                if (value <= sbyte.MaxValue && value >= sbyte.MinValue) {
+                    return smaller((sbyte)value);
+                } else {
+                    return new ScatterTreeBuffer(BitConverter.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, short> GenerateSInt16Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    case 2: return BitConverter.ToInt16(buffer.GetUnderlying(), buffer.Start);
+                    default: throw new DataFormatException("SInt64 values can be 0, 1 or 2 bytes.");
+                }
+            };
+        }
+
+        private Func<int, ScatterTreeBuffer> GenerateSInt32Encoder() {
+            var smaller = GenerateSInt16Encoder();
+            return (value) => {
+                if (value <= short.MaxValue && value >= short.MinValue) {
+                    return smaller((short)value);
+                } else { // TODO: 3-byte encoding
+                    return new ScatterTreeBuffer(BitConverter.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, int> GenerateSInt32Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    case 2: return BitConverter.ToInt16(buffer.GetUnderlying(), buffer.Start);
+                    // TODO: 3
+                    case 4: return BitConverter.ToInt32(buffer.GetUnderlying(), buffer.Start);
+                    default: throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
+                }
+            };
+        }
+
+        private Func<long, ScatterTreeBuffer> GenerateSInt64Encoder() {
+            var smaller = GenerateSInt32Encoder();
+            return (value) => {
+                if (value <= int.MaxValue && value >= int.MinValue) {
+                    return smaller((int)value);
+                } else { // TODO: 5, 6, 7 byte encoding
+                    return new ScatterTreeBuffer(BitConverter.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, long> GenerateSInt64Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    case 2: return BitConverter.ToInt16(buffer.GetUnderlying(), buffer.Start);
+                    // TODO: 3
+                    case 4: return BitConverter.ToInt32(buffer.GetUnderlying(), buffer.Start);
+                    // TODO 5,6,7
+                    case 8: return BitConverter.ToInt64(buffer.GetUnderlying(), buffer.Start);
+                    default: throw new DataFormatException("SInt64 values can be 0, 1, 2, 4 or 8 bytes.");
+                }
+            };
+        }
+
+        private Func<byte, ScatterTreeBuffer> GenerateUInt8Encoder() {
+            return (value) => {
+                if (value == 0) {
+                    return ScatterTreeBuffer.Empty;
+                } else {
+                    return new ScatterTreeBuffer(new byte[] { value });
+                }
+            };
+        }
+        private Func<Buffer<byte>, byte> GenerateUInt8Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    default: throw new DataFormatException("UInt64 values can be 0 or 1 bytes.");
+                }
+            };
+        }
+
+        private Func<ushort, ScatterTreeBuffer> GenerateUInt16Encoder() {
+            var smaller = GenerateUInt8Encoder();
+            return (value) => {
+                if (value <= byte.MaxValue) {
+                    return smaller((byte)value);
+                } else {
+                    return new ScatterTreeBuffer(BitConverter.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, ushort> GenerateUInt16Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    case 2: return BitConverter.ToUInt16(buffer.GetUnderlying(), buffer.Start);
+                    default: throw new DataFormatException("UInt64 values can be 0, 1 or 2 bytes.");
+                }
+            };
+        }
+
+        private Func<uint, ScatterTreeBuffer> GenerateUInt32Encoder() {
+            var smaller = GenerateUInt16Encoder();
+            return (value) => {
+                if (value <= ushort.MaxValue) {
+                    return smaller((ushort)value);
+                } else {// TODO: 3 byte encoding
+                    return new ScatterTreeBuffer(BitConverter.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, uint> GenerateUInt32Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    case 2: return BitConverter.ToUInt16(buffer.GetUnderlying(), buffer.Start);
+                    // TODO: 3
+                    case 4: return BitConverter.ToUInt32(buffer.GetUnderlying(), buffer.Start);
+                    default: throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
+                }
+            };
+        }
+
+        private Func<ulong, ScatterTreeBuffer> GenerateUInt64Encoder() {
+            var smaller = GenerateUInt32Encoder();
+            return (value) => {
+                if (value <= uint.MaxValue) {
+                    return smaller((uint)value);
+                } else { // TODO: 5, 6, 7 byte encoding
+                    return new ScatterTreeBuffer(BitConverter.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, ulong> GenerateUInt64Decoder() {
+            return (buffer) => {
+                switch (buffer.Readable) {
+                    case 0: return 0;
+                    case 1: return buffer.Dequeue();
+                    case 2: return BitConverter.ToUInt16(buffer.GetUnderlying(), buffer.Start);
+                    // TODO: 3
+                    case 4: return BitConverter.ToUInt32(buffer.GetUnderlying(), buffer.Start);
+                    // TODO 5,6,7
+                    case 8: return BitConverter.ToUInt64(buffer.GetUnderlying(), buffer.Start);
+                    default: throw new DataFormatException("UInt64 values can be 0, 1, 2, 4 or 8 bytes.");
+                }
+            };
+        }
+
+        private Func<string, ScatterTreeBuffer> GenerateStringEncoder() {
+            return (value) => {
+                if (null == value) {
+                    return ScatterTreeBuffer.Empty;
+                } else {
+                    return new ScatterTreeBuffer(Encoding.UTF8.GetBytes(value));
+                }
+            };
+        }
+        private Func<Buffer<byte>, string> GenerateStringDecoder() {
+            return (buffer) => {
+                return Encoding.UTF8.GetString(buffer.GetUnderlying(), buffer.Start, buffer.Readable);
+            };
+        }
+
+        private Func<Array, ScatterTreeBuffer> GenerateArrayEncoder<T>() {
+            // Get serilizer for sub items
+            var valueEncoder = GetEncoder(typeof(T).GetElementType());
+
+            return (value) => {
                 // Handle nulls
                 if (null == value) {
                     return ScatterTreeBuffer.Empty;
@@ -226,17 +433,17 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 var pos = 0;
                 var result = new ScatterTreeBuffer[value.Length];
                 foreach (var element in value) {
-                    result[pos++] = (ScatterTreeBuffer)innerSerializer.DynamicInvoke(element);
+                    result[pos++] = (ScatterTreeBuffer)valueEncoder.DynamicInvoke(element);
                 }
 
                 return new ScatterTreeBuffer(result);
             };
-            Serializers[typeof(T)] = serilizer;
-
+        }
+        private Func<Buffer<byte>, Array> GenerateArrayDecoder<T>() {
             // Get deserilizer for sub items
-            var innerDeserializer = GetDeserializerBlind(typeof(T).GetElementType());
+            var valueDecoder = GetDecoder(typeof(T).GetElementType());
 
-            Func<Buffer<byte>, Array> deserilizer = (buffer) => {
+            return (buffer) => {
                 // Instantiate list
                 var container = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(typeof(T).GetElementType()));
 
@@ -249,7 +456,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                     var subBuffer = buffer.DequeueBuffer(length);
 
                     // Deserialize element
-                    var element = innerDeserializer.DynamicInvoke(subBuffer);
+                    var element = valueDecoder.DynamicInvoke(subBuffer);
 
                     // Add to output
                     container.Add(element);
@@ -261,14 +468,13 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                 return output;
             };
-            Deserializers[typeof(T)] = deserilizer;
         }
 
-        private void PrepareForList<T>() {
+        private Func<IList, ScatterTreeBuffer> GenerateListEncoder<T>() {
             // Get serilizer for sub items
-            var innerSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
+            var valueEncoder = GetEncoder(typeof(T).GenericTypeArguments[0]);
 
-            Func<IList, ScatterTreeBuffer> serilizer = (value) => {
+            return (value) => {
                 // Handle nulls
                 if (null == value) {
                     return ScatterTreeBuffer.Empty;
@@ -278,17 +484,17 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 var pos = 0;
                 var result = new ScatterTreeBuffer[value.Count];
                 foreach (var element in value) {
-                    result[pos++] = (ScatterTreeBuffer)innerSerializer.DynamicInvoke(element);
+                    result[pos++] = (ScatterTreeBuffer)valueEncoder.DynamicInvoke(element);
                 }
 
                 return new ScatterTreeBuffer(result);
             };
-            Serializers[typeof(T)] = serilizer;
-
+        }
+        private Func<Buffer<byte>, T> GenerateListDecoder<T>() {
             // Get deserilizer for sub items
-            var innerDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[0]);
+            var valueDecoder = GetDecoder(typeof(T).GenericTypeArguments[0]);
 
-            Func<Buffer<byte>, T> deserilizer = (buffer) => {
+            return (buffer) => {
                 // Instantiate list
                 var output = (IList)Activator.CreateInstance(typeof(T));//typeof(List<>).MakeGenericType(type.GenericTypeArguments)
 
@@ -301,7 +507,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                     var subBuffer = buffer.DequeueBuffer(length);
 
                     // Deserialize element
-                    var element = innerDeserializer.DynamicInvoke(subBuffer);
+                    var element = valueDecoder.DynamicInvoke(subBuffer);
 
                     // Add to output
                     output.Add(element);
@@ -309,15 +515,14 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                 return (T)output;
             };
-            Deserializers[typeof(T)] = deserilizer;
         }
 
-        private void PrepareForDictionary<T>() {
+        private Func<IDictionary, ScatterTreeBuffer> GenerateDictionaryEncoder<T>() {
             // Get serilizer for sub items
-            var innerKeySerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[0]);
-            var innerValueSerializer = GetSerializerBlind(typeof(T).GenericTypeArguments[1]);
+            var keyEncoder = GetEncoder(typeof(T).GenericTypeArguments[0]);
+            var valueEncoder = GetEncoder(typeof(T).GenericTypeArguments[1]);
 
-            Func<IDictionary, ScatterTreeBuffer> serilizer = (value) => {
+            return (value) => {
                 // Handle nulls
                 if (null == value) {
                     return ScatterTreeBuffer.Empty;
@@ -328,19 +533,19 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 var result = new ScatterTreeBuffer[value.Count * 2];
                 var e = value.GetEnumerator();
                 while (e.MoveNext()) {
-                    result[pos++] = (ScatterTreeBuffer)innerKeySerializer.DynamicInvoke(e.Key);
-                    result[pos++] = (ScatterTreeBuffer)innerValueSerializer.DynamicInvoke(e.Value);
+                    result[pos++] = (ScatterTreeBuffer)keyEncoder.DynamicInvoke(e.Key);
+                    result[pos++] = (ScatterTreeBuffer)valueEncoder.DynamicInvoke(e.Value);
                 }
 
                 return new ScatterTreeBuffer(result);
             };
-            Serializers[typeof(T)] = serilizer;
-
+        }
+        private Func<Buffer<byte>, IDictionary> GenerateDictionaryDecoder<T>() {
             // Get deserilizer for sub items
-            var innerKeyDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[0]);
-            var innerValueDeserializer = GetDeserializerBlind(typeof(T).GenericTypeArguments[1]);
+            var keyDecoder = GetDecoder(typeof(T).GenericTypeArguments[0]);
+            var valueDecoder = GetDecoder(typeof(T).GenericTypeArguments[1]);
 
-            Func<Buffer<byte>, IDictionary> deserilizer = (buffer) => {
+            return (buffer) => {
                 // Instantiate dictionary
                 var output = (IDictionary)Activator.CreateInstance(typeof(T));
 
@@ -349,12 +554,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                     // Deserialize key
                     var keyLength = (int)VLQ.DecompressUnsigned(buffer);
                     var keyBuffer = buffer.DequeueBuffer(keyLength);
-                    var keyValue = innerKeyDeserializer.DynamicInvoke(keyBuffer);
+                    var keyValue = keyDecoder.DynamicInvoke(keyBuffer);
 
                     // Deserialize value
                     var valueLength = (int)VLQ.DecompressUnsigned(buffer);
                     var valueBuffer = buffer.DequeueBuffer(valueLength);
-                    var valueValue = innerValueDeserializer.DynamicInvoke(valueBuffer);
+                    var valueValue = valueDecoder.DynamicInvoke(valueBuffer);
 
                     // Add to output
                     output[keyValue] = valueValue;
@@ -362,10 +567,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                 return output;
             };
-            Deserializers[typeof(T)] = deserilizer;
         }
 
-        private void PrepareForPOCO<T>() {
+        private Func<T, ScatterTreeBuffer> GeneratePOCOEncoder<T>() {
             // Create method
             var name = typeof(T).Name + "_Serilizer";
             var newType = DynamicModule.DefineType(name, TypeAttributes.Public);
@@ -382,15 +586,15 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             il.Emit(OpCodes.Brtrue, notNullLabel);
             il.Emit(OpCodes.Ldarg_1); // output
             il.Emit(OpCodes.Ldc_I4_S, 0x80);
-            il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.AddRaw), new Type[] { typeof(byte) }));
+            //il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.AddRaw), new Type[] { typeof(byte) }));
             il.Emit(OpCodes.Ret);
 
             il.MarkLabel(notNullLabel);
             il.Emit(OpCodes.Ldarg_1); // output
-            il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.Allocate), new Type[] { }));
+            //il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.Allocate), new Type[] { }));
             il.Emit(OpCodes.Stloc_0);
             il.Emit(OpCodes.Ldarg_1); // output
-            il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeProperty(nameof(SerializationOutput.Length)).GetMethod);
+            //il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeProperty(nameof(SerializationOutput.Length)).GetMethod);
             il.Emit(OpCodes.Stloc_1);
 
             var properties = new Dictionary<byte, FieldInfo>();
@@ -410,7 +614,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 for (byte i = 0; i <= maxval; i++) {
                     if (properties.TryGetValue(i, out var itm)) {
                         // Get the serializer for the subitem
-                        var subType = GetSerializerBlind(itm.FieldType);
+                        var subType = GetEncoder(itm.FieldType);
 
                         // Get it's method info
                         var subMethodInfo = subType.GetMethodInfo();
@@ -423,7 +627,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                         //output.AddRaw(0x80);
                         il.Emit(OpCodes.Ldarg_1);           // P1: output
                         il.Emit(OpCodes.Ldc_I4_S, 0x80);    // P2: 0x80
-                        il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.AddRaw), new Type[] { typeof(byte) }));
+                        //il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.AddRaw), new Type[] { typeof(byte) }));
                     }
                 }
             }
@@ -431,16 +635,18 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
             il.Emit(OpCodes.Ldarg_1);
             il.Emit(OpCodes.Ldloc_0);
             il.Emit(OpCodes.Ldarg_1);
-            il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeProperty(nameof(SerializationOutput.Length)).GetMethod);
+            //il.Emit(OpCodes.Callvirt, typeof(SerializationOutput).GetRuntimeProperty(nameof(SerializationOutput.Length)).GetMethod);
             il.Emit(OpCodes.Ldloc_1);
             il.Emit(OpCodes.Sub);
-            il.Emit(OpCodes.Call, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.SetVLQ), new Type[] { typeof(int), typeof(ulong) }));
+            //il.Emit(OpCodes.Call, typeof(SerializationOutput).GetRuntimeMethod(nameof(SerializationOutput.SetVLQ), new Type[] { typeof(int), typeof(ulong) }));
             il.Emit(OpCodes.Ret);
 
             // Add to serilizers
             var methodInfo = newType.CreateTypeInfo().GetMethod(name);
-            Serializers[typeof(T)] = (Func<T, ScatterTreeBuffer>)methodInfo.CreateDelegate(typeof(Func<T, ScatterTreeBuffer>));
+            return (Func<T, ScatterTreeBuffer>)methodInfo.CreateDelegate(typeof(Func<T, ScatterTreeBuffer>));
 
+        }
+        private Func<Buffer<byte>, T> GeneratePOCODecoder<T>() {
             // Build vector of property types
             var a = new FieldInfo[byte.MaxValue];
             foreach (var field in typeof(T).GetRuntimeFields()) { // TODO: Add property support
@@ -455,7 +661,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
                 }
             }
 
-            Func<Buffer<byte>, T> deserilizer = (buffer) => {
+            return (buffer) => {
                 // Instantiate output
                 var output = (T)Activator.CreateInstance(typeof(T));
 
@@ -473,7 +679,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                     if (a[index] != null) {
                         // Get deserilizer
-                        var deserializer = GetDeserializerBlind(a[index].FieldType);
+                        var deserializer = GetDecoder(a[index].FieldType);
 
                         // Deserialize value
                         var value = deserializer.DynamicInvoke(subBuffer);
@@ -485,7 +691,19 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
                 return output;
             };
-            Deserializers[typeof(T)] = deserilizer;
+        }
+
+
+        public static byte[] Serialize<T>(T value) {
+            var buffer = new Buffer<byte>(0);
+            var lw = new LightWeight();
+            lw.Encode(value, buffer);
+            return buffer.ToArray();
+        }
+        public static T Deserialize<T>(byte[] payload) {
+            var buffer = new Buffer<byte>(payload);
+            var lw = new LightWeight();
+            return lw.Decode<T>(buffer);
         }
     }
 }

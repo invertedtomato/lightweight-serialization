@@ -14,16 +14,16 @@ namespace StressTest {
 
             var timer = Stopwatch.StartNew();
 
-            var lw = new LightWeight(new LightWeightOptions());
+            var lw = new LightWeight();
             lw.PrepareFor<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(); // Cheating? Not sure.
 
             Buffer<byte> lwOutput = null;
             for (var i = 0; i < 25; i++) {
                 lwOutput = new Buffer<byte>(100);
                 lwOutput.AutoGrow = true;
-                lw.Serialize(bible, lwOutput);
+                lw.Encode(bible, lwOutput);
         
-                lw.Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
+                lw.Decode<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
             }
 
             Console.WriteLine(timer.ElapsedMilliseconds);

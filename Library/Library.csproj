@@ -7,12 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="LightWeightSerialization\Coders\ArrayCoder.cs" />
-    <Compile Remove="LightWeightSerialization\Coders\CoderRegistry.cs" />
-    <Compile Remove="LightWeightSerialization\Coders\DictionaryCoder.cs" />
-    <Compile Remove="LightWeightSerialization\Coders\ICoder.cs" />
-    <Compile Remove="LightWeightSerialization\Coders\ListCoder.cs" />
-    <Compile Remove="LightWeightSerialization\Coders\POCOCoder.cs" />
+    <Compile Remove="LightWeightSerialization\Coders\**" />
+    <EmbeddedResource Remove="LightWeightSerialization\Coders\**" />
+    <None Remove="LightWeightSerialization\Coders\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="LightWeightSerialization\LightWeightOLD.cs" />
   </ItemGroup>
 
   <ItemGroup>

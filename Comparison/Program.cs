@@ -66,15 +66,15 @@ namespace Comparison {
             }
             nsDeserialize.Stop();
 
-            var lw = new LightWeight(new LightWeightOptions());
+            var lw = new LightWeight();
             lw.PrepareFor<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(); // Cheating? Not sure.
             Buffer<byte> lwOutput = new Buffer<byte>(100);
             lwOutput.AutoGrow = true;
             var lwSerialize = Stopwatch.StartNew();
-            lw.Serialize(bible, lwOutput);
+            lw.Encode(bible, lwOutput);
             lwSerialize.Stop();
             var lwDeserialize = Stopwatch.StartNew();
-            var lwResult = lw.Deserialize<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
+            var lwResult = lw.Decode<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
             if (lwResult.Count != bible.Count) {
                 Console.WriteLine("LightWeight DISQUALIFIED");
             }

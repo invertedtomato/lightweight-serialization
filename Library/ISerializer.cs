@@ -2,7 +2,7 @@
 
 namespace InvertedTomato.Serialization {
     public interface ISerializer {
-        void Serialize<T>(T value, Buffer<byte> buffer);
-        T Deserialize<T>(Buffer<byte> input);
+        void Encode<T>(T value, Buffer<byte> buffer);
+        T Decode<T>(Buffer<byte> input);
     }
 }
