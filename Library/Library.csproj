@@ -4,6 +4,17 @@
     <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>InvertedTomato.LightWeightSerialization.Library</AssemblyName>
     <RootNamespace>InvertedTomato.Serialization</RootNamespace>
+    <PackageId>InvertedTomato.LightWeightSerialization</PackageId>
+    <Title>InvertedTomato.LightWeightSerialization</Title>
+    <Authors>Inverted Tomato</Authors>
+    <Description>Extremely compact serialization for when size matters more than functionality. Outperforms ProtoBuf and MsgPack. </Description>
+    <PackageVersion>0.1.3</PackageVersion>
+    <PackageProjectUrl>https://github.com/invertedtomato/lightweight-serialization</PackageProjectUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/invertedtomato/lightweight-serialization/master/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/invertedtomato/lightweight-serialization</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>serialization,serialisation,compact</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

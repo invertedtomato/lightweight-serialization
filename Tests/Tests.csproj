@@ -3,7 +3,8 @@
   <PropertyGroup>    
     <TargetFramework>netcoreapp1.1</TargetFramework>    
     <AssemblyName>InvertedTomato.LightWeightSerialization.Tests</AssemblyName>    
-    <RootNamespace></RootNamespace>
+    <RootNamespace></RootNamespace>    
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
