@@ -10,7 +10,7 @@ using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
 
 namespace Comparison {
-	internal class Program {
+	internal class inputifinpuProgram {
 		/* After C'tof input #1
 		 *FORMAT      SIZE   SERIALIZE    DESERIALIZE
 		    JSON:      4,062KB    82ms    34ms

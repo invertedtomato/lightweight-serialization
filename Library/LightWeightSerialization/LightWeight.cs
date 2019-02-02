@@ -29,7 +29,6 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			}
 #endif
 
-
 			// Get root serilizer
 			var rootSerilizer = (Func<T, ScatterTreeBuffer>) GetEncoder<T>();
 
@@ -50,10 +49,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			}
 #endif
 
-			// Get root serilizer
+			// Get root serializer
 			var root = GetDecoder<T>();
 
-			// Invoke root serilizer
+			// Invoke root serializer
 			return (T) root.DynamicInvoke(input);
 		}
 
