@@ -45,3 +45,6 @@ public class SubPOCO {
     public Boolean SubValue;
 }
 ```
+
+## What is the protocol?
+Have a look a the [protocol documentation](https://github.com/invertedtomato/lightweight-serialization/blob/master/PROTOCOL.md).

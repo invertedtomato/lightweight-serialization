@@ -230,11 +230,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 		private Func<Boolean, ScatterTreeBuffer> GenerateBoolEncoder() {
 			return value => {
-				if (value) {
-					return new ScatterTreeBuffer(new Byte[] {0x00});
+				if (!value) {
+					// TODO: Shouldn't this be? return ScatterTreeBuffer.Empty;
+					return new ScatterTreeBuffer(new Byte[] { });
 				}
 
-				return new ScatterTreeBuffer(new Byte[] { });
+				return new ScatterTreeBuffer(new Byte[] {0x00});
 			};
 		}
 
