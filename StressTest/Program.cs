@@ -1,33 +1,33 @@
-﻿using InvertedTomato.IO.Buffers;
-using InvertedTomato.Serialization.LightWeightSerialization;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using InvertedTomato.IO.Buffers;
+using InvertedTomato.Serialization.LightWeightSerialization;
+using Newtonsoft.Json;
 
 namespace StressTest {
-    class Program {
-        static void Main(string[] args) {
-            // Open test data (Book => Chapter => Verse => Content)
-            var bible = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(File.ReadAllText("esv.json"));
+	internal class Program {
+		private static void Main(String[] args) {
+			// Open test data (Book => Chapter => Verse => Content)
+			var bible = JsonConvert.DeserializeObject<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(File.ReadAllText("esv.json"));
 
-            var timer = Stopwatch.StartNew();
+			var timer = Stopwatch.StartNew();
 
-            var lw = new LightWeight();
-            lw.PrepareFor<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(); // Cheating? Not sure.
+			var lw = new LightWeight();
+			lw.PrepareFor<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(); // Cheating? Not sure.
 
-            Buffer<byte> lwOutput = null;
-            for (var i = 0; i < 25; i++) {
-                lwOutput = new Buffer<byte>(100);
-                lwOutput.AutoGrow = true;
-                lw.Encode(bible, lwOutput);
-        
-                lw.Decode<Dictionary<string, Dictionary<int, Dictionary<int, string>>>>(lwOutput);
-            }
+			Buffer<Byte> lwOutput = null;
+			for (var i = 0; i < 25; i++) {
+				lwOutput = new Buffer<Byte>(100);
+				lwOutput.AutoGrow = true;
+				lw.Encode(bible, lwOutput);
 
-            Console.WriteLine(timer.ElapsedMilliseconds);
-            Console.ReadKey(true);
-        }
-    }
+				lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput);
+			}
+
+			Console.WriteLine(timer.ElapsedMilliseconds);
+			Console.ReadKey(true);
+		}
+	}
 }

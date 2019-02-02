@@ -1,12 +1,12 @@
 ﻿using System;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
-    [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    public sealed class LightWeightPropertyAttribute : Attribute {
-        public LightWeightPropertyAttribute(byte index) {
-            Index = index;
-        }
+	[AttributeUsage(AttributeTargets.Field)]
+	public sealed class LightWeightPropertyAttribute : Attribute {
+		public LightWeightPropertyAttribute(Byte index) {
+			Index = index;
+		}
 
-        public byte Index { get; private set; }
-    }
+		public Byte Index { get; }
+	}
 }
