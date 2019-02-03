@@ -1,5 +1,7 @@
 ﻿using System;
 
+#pragma warning disable 649
+
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	internal class Program {
 		static void Main(String[] args) {

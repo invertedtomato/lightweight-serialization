@@ -11,15 +11,11 @@ using InvertedTomato.IO.Buffers;
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	public class LightWeight : ISerializer {
 		private readonly Dictionary<Type, Delegate> Decoders = new Dictionary<Type, Delegate>(); // Func<TOut, T>
-		private readonly ModuleBuilder DynamicModule;
 		private readonly Dictionary<Type, Delegate> Encoders = new Dictionary<Type, Delegate>(); // Func<T, TIn>
 		private readonly Object Sync = new Object();
 		private readonly VLQCodec VLQ = new VLQCodec();
 
 		public LightWeight() {
-			// Prepare assembly for dynamic serializers/deserilizers
-			var dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("DynamicCoders"), AssemblyBuilderAccess.Run);
-			DynamicModule = dynamicAssembly.DefineDynamicModule("DynamicCoders");
 		}
 
 		public void Encode<T>(T value, Buffer<Byte> buffer) {
@@ -613,6 +609,75 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		}
 
 		private Func<T, ScatterTreeBuffer> GeneratePOCOEncoder<T>() {
+			// Find all properties decorated with LightWeightProperty attribute
+
+			var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
+			var encoders = new Delegate[Byte.MaxValue]; // Index => Encoder
+			var maxIndex = -1;
+			foreach (var property in typeof(T).GetRuntimeFields()) {
+				// Get property attribute which tells us the properties' index
+				var attribute = (LightWeightPropertyAttribute) property.GetCustomAttribute(typeof(LightWeightPropertyAttribute), false);
+				if (null == attribute) {
+					// No attribute found, skip
+					continue;
+				}
+
+				// Check for duplicate index
+				if (null != fields[attribute.Index]) {
+					throw new DuplicateIndexException($"The index {fields[attribute.Index]} is already used and cannot be reused.");
+				}
+
+				// Note the max index used
+				if (attribute.Index > maxIndex) {
+					maxIndex = attribute.Index;
+				}
+
+				// Find/create encoder
+				var encoder = GetEncoder(property.FieldType);
+
+				// Store property in lookup
+				fields[attribute.Index] = property;
+				encoders[attribute.Index] = encoder;
+			}
+
+			// If no properties, shortcut the whole thing and return a blank
+			if (maxIndex == -1) {
+				return value => ScatterTreeBuffer.Empty;
+			}
+
+			return value => {
+				// Handle nulls
+				if (null == value) {
+					return ScatterTreeBuffer.Empty;
+				}
+
+				var result = new ScatterTreeBuffer[maxIndex + 1];
+
+				for (Byte i = 0; i <= maxIndex; i++) {
+					var field = fields[i];
+					var encoder = encoders[i];
+
+					if (null == field) {
+						result[i] = ScatterTreeBuffer.Empty;
+					} else {
+						// Get the serializer for the sub-item
+						var subType = GetEncoder(field.FieldType);
+
+						// Get it's method info
+						var subMethodInfo = subType.GetMethodInfo();
+
+						// Extract value
+						var v = field.GetValue(value);
+
+						// Add to output
+						result[i] = (ScatterTreeBuffer) encoder.DynamicInvoke(v);
+					}
+				}
+
+				return new ScatterTreeBuffer(result);
+			};
+
+			/*
 			// Create method
 			var name = typeof(T).Name + "_Serializer";
 			var newType = DynamicModule.DefineType(name, TypeAttributes.Public);
@@ -687,21 +752,35 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			// Add to serializers
 			var methodInfo = newType.CreateTypeInfo().GetMethod(name);
 			return (Func<T, ScatterTreeBuffer>) methodInfo.CreateDelegate(typeof(Func<T, ScatterTreeBuffer>));
+			*/
 		}
 
 		private Func<Buffer<Byte>, T> GeneratePOCODecoder<T>() {
 			// Build vector of property types
-			var a = new FieldInfo[Byte.MaxValue];
+			var fields = new FieldInfo[Byte.MaxValue];
+			var decoders = new Delegate [Byte.MaxValue];
 			foreach (var field in typeof(T).GetRuntimeFields()) {
 				// TODO: Add property support
 				// Get property attribute which tells us the properties' index
 				var attribute = (LightWeightPropertyAttribute) field.GetCustomAttribute(typeof(LightWeightPropertyAttribute));
 
 				// Skip if not found, or index doesn't match
-				if (null != attribute) {
-					// TODO: check for dupes
-					a[attribute.Index] = field;
+				if (null == attribute) {
+					// No attribute found, skip
+					continue;
 				}
+
+				// Check for duplicate index
+				if (null != fields[attribute.Index]) {
+					throw new DuplicateIndexException($"The index {fields[attribute.Index]} is already used and cannot be reused.");
+				}
+
+				// Find/generate decoder
+				var decoder = GetDecoder(field.FieldType);
+
+				// Store values in lookup
+				fields[attribute.Index] = field;
+				decoders[attribute.Index] = decoder;
 			}
 
 			return buffer => {
@@ -720,16 +799,17 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 					// Increment the index
 					index++;
 
-					if (a[index] != null) {
-						// Get deserializer
-						var deserializer = GetDecoder(a[index].FieldType);
-
-						// Deserialize value
-						var value = deserializer.DynamicInvoke(subBuffer);
-
-						// Set it on property
-						a[index].SetValue(output, value);
+					// Get field, and skip if it doesn't exist (it'll be ignored)
+					var field = fields[index];
+					if (null == field) {
+						continue;
 					}
+
+					// Deserialize value
+					var value = decoders[index].DynamicInvoke(subBuffer);
+
+					// Set it on property
+					field.SetValue(output, value);
 				}
 
 				return output;
