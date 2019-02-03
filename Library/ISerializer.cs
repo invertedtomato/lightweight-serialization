@@ -1,9 +1,9 @@
 ﻿using System;
-using InvertedTomato.IO.Buffers;
+using System.IO;
 
 namespace InvertedTomato.Serialization {
 	public interface ISerializer {
-		void Encode<T>(T value, Buffer<Byte> buffer);
-		T Decode<T>(Buffer<Byte> input);
+		Int32 Encode<T>(T value, Stream output);
+		T Decode<T>(Stream input, Int32 count);
 	}
 }

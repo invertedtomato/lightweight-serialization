@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using InvertedTomato.Compression.Integers;
 using InvertedTomato.Serialization.LightWeightSerialization;
+using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
 
 public class LightWeightTests {
@@ -398,12 +401,12 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new SByte[] {1, 2, 3});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
-			0x01, // 1
-			0x81, // [1]
-			0x02, // 2
-			0x81, // [2]
-			0x03 // 3
+			0x81, // [0]=
+			0x01, //   1
+			0x81, // [1]=
+			0x02, //   2
+			0x81, // [2]=
+			0x03  //   3
 		}, serialized);
 	}
 
@@ -412,14 +415,14 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new[] {"a", "bc", "def", "", null});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
+			0x81, // [0]=
 			(Byte) 'a',
-			0x82, // [1]
+			0x82, // [1]=
 			(Byte) 'b', (Byte) 'c',
-			0x83, // [2]
+			0x83, // [2]=
 			(Byte) 'd', (Byte) 'e', (Byte) 'f',
-			0x80, //[3]
-			0x80 // [4]
+			0x80, //[3]=
+			0x80 // [4]=
 		}, serialized);
 	}
 
@@ -428,11 +431,11 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new UInt16[] {1, 2, 1000});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
-			0x01, // 1
-			0x81, // [1]
-			0x02, // 2
-			0x82, // [2]
+			0x81, // [0]=
+			0x01, //   1
+			0x81, // [1]=
+			0x02, //   2
+			0x82, // [2]=
 			0xE8, 0x03 // 1000
 		}, serialized);
 	}
@@ -442,11 +445,11 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new UInt32[] {1, 2, 1000});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
-			0x01, // 1
-			0x81, // [1]
-			0x02, // 2
-			0x82, // [2]
+			0x81, // [0]=
+			0x01, //   1
+			0x81, // [1]=
+			0x02, //   2
+			0x82, // [2]=
 			0xE8, 0x03 // 1000
 		}, serialized);
 	}
@@ -456,11 +459,11 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new UInt64[] {1, 2, 1000});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
-			0x01, // 1
-			0x81, // [1]
-			0x02, // 2
-			0x82, // [2]
+			0x81, // [0]=
+			0x01, //   1
+			0x81, // [1]=
+			0x02, //   2
+			0x82, // [2]=
 			0xE8, 0x03 // 1000
 		}, serialized);
 	}
@@ -470,12 +473,12 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new Byte[] {1, 2, 3});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
-			0x01, // 1
-			0x81, // [1]
-			0x02, // 2
-			0x81, // [2]
-			0x03 // 3
+			0x81, // [0]=
+			0x01, //   1
+			0x81, // [1]=
+			0x02, //   2
+			0x81, // [2]=
+			0x03  //   3
 		}, serialized);
 	}
 
@@ -512,12 +515,12 @@ public class LightWeightTests {
 		var serialized = LightWeight.Serialize(new List<Int32> {1, 2, 3});
 
 		Assert.Equal(new Byte[] {
-			0x81, // [0]
-			0x01, // 1
-			0x81, // [1]
-			0x02, // 2
-			0x81, // [2]
-			0x03 // 3
+			0x81, // [0]=
+			0x01, //   1
+			0x81, // [1]=
+			0x02, //   2
+			0x81, // [2]=
+			0x03  //   3
 		}, serialized);
 	}
 
@@ -531,9 +534,9 @@ public class LightWeightTests {
 
 		Assert.Equal(new Byte[] {
 			0x81, // B=
-			0x09, // 0
+			0x09, //   0
 			0x81, // A=
-			0x01, // 1
+			0x01, //   1
 			0x82, // C=
 			0xE8, 0x03 // 1000
 		}, serialized);
@@ -550,17 +553,26 @@ public class LightWeightTests {
 			}
 		});
 
+		// TODO: Notes when debugging an issue.....
+		//Expected: 84-74-65-73-74-87-81-09-81-01-82-E8-03
+		//Actual:   84-74-65-73-74-84-81-09-81-01-82-E8-03-80-80  +2
+		//Actual:   84-74-65-73-74-84-81-09-81-01-82-E8-03       +1
+		
+		//Expected: 84(74657374) 87(81(09) 81(01) 82(E803))
+		//Actual:   84(74657374) 84(81098101) 82(E803)
+
+		
 		Assert.Equal(new Byte[] {
 			0x84, // Y=
 			0x74, 0x65, 0x73, 0x74, // "test"
 			0x87, // Z=
-			0x81, // B=
-			0x09, // 9
-			0x81, // A=
-			0x01, // 1
-			0x82, // B=
+			0x81, //   B=
+			0x09, //     9
+			0x81, //   A=
+			0x01, //     1
+			0x82, //   C=
 			0xE8, 0x03 // 1000
-		}, serialized);
+		}.ToHexString(), serialized.ToHexString());
 	}
 
 	[Fact]

@@ -71,13 +71,12 @@ namespace Comparison {
 
 			var lw = new LightWeight();
 			lw.PrepareFor<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(); // Cheating? Not sure.
-			var lwOutput = new Buffer<Byte>(100);
-			lwOutput.AutoGrow = true;
+			var lwOutput = new MemoryStream();
 			var lwSerialize = Stopwatch.StartNew();
-			lw.Encode(bible, lwOutput);
+			var length = lw.Encode(bible, lwOutput);
 			lwSerialize.Stop();
 			var lwDeserialize = Stopwatch.StartNew();
-			var lwResult = lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput);
+			var lwResult = lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput, length);
 			if (lwResult.Count != bible.Count) {
 				Console.WriteLine("LightWeight DISQUALIFIED");
 			}
@@ -88,7 +87,7 @@ namespace Comparison {
 			Console.WriteLine("JSON:      {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", nsOutput.Length / 1024, nsSerialize.ElapsedMilliseconds, nsDeserialize.ElapsedMilliseconds);
 			Console.WriteLine("ProtoBuff: {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", pbOutput.Length / 1024, pbSerialize.ElapsedMilliseconds, pbDeserialize.ElapsedMilliseconds);
 			Console.WriteLine("MsgPack:   {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", mpOutput.Length / 1024, mpSerialize.ElapsedMilliseconds, mpDeserialize.ElapsedMilliseconds);
-			Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", lwOutput.Readable / 1024, lwSerialize.ElapsedMilliseconds, lwDeserialize.ElapsedMilliseconds);
+			Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", lwOutput.Length / 1024, lwSerialize.ElapsedMilliseconds, lwDeserialize.ElapsedMilliseconds);
 
 			Console.WriteLine("Done.");
 			Console.ReadKey(true);

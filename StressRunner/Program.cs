@@ -12,18 +12,24 @@ namespace StressTest {
 			// Open test data (Book => Chapter => Verse => Content)
 			var bible = JsonConvert.DeserializeObject<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(File.ReadAllText("esv.json"));
 
+			// Setup output
+			var output = new MemoryStream();
+
+			// Start timer
 			var timer = Stopwatch.StartNew();
 
-			var lw = new LightWeight();
-			//lw.PrepareFor<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(); // Cheating? Not sure.
+			// Start LightWeight
+			var lw = new LightWeight();	
 
-			Buffer<Byte> lwOutput = null;
 			for (var i = 0; i < 25; i++) {
-				lwOutput = new Buffer<Byte>(100);
-				lwOutput.AutoGrow = true;
-				lw.Encode(bible, lwOutput);
+				// Encode
+				var length = lw.Encode(bible, output);
 
-				lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput);
+				// Rewind buffer
+				output.Seek(0, SeekOrigin.Begin);
+
+				// Decode
+				lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output, length);
 			}
 
 			Console.WriteLine(timer.ElapsedMilliseconds);
