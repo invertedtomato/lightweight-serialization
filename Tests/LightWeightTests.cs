@@ -148,12 +148,12 @@ public class LightWeightTests {
 
 	[Fact]
 	public void Deserialize_Bool_False() {
-		Assert.Equal(false, LightWeight.Deserialize<Boolean>(new Byte[] { }));
+		Assert.False(LightWeight.Deserialize<Boolean>(new Byte[] { }));
 	}
 
 	[Fact]
 	public void Deserialize_Bool_True() {
-		Assert.Equal(true, LightWeight.Deserialize<Boolean>(new Byte[] {0x00}));
+		Assert.True(LightWeight.Deserialize<Boolean>(new Byte[] {0x00}));
 	}
 
 	[Fact]
