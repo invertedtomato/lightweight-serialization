@@ -557,15 +557,6 @@ public class LightWeightTests {
 				C = 1000
 			}
 		});
-
-		// TODO: Notes when debugging an issue.....
-		//Expected: 84-74-65-73-74-87-81-09-81-01-82-E8-03
-		//Actual:   84-74-65-73-74-84-81-09-81-01-82-E8-03-80-80  +2
-		//Actual:   84-74-65-73-74-84-81-09-81-01-82-E8-03       +1
-		
-		//Expected: 84(74657374) 87(81(09) 81(01) 82(E803))
-		//Actual:   84(74657374) 84(81098101) 82(E803)
-
 		
 		Assert.Equal(new Byte[] {
 			0x84, // Y=
@@ -613,7 +604,7 @@ public class LightWeightTests {
 
 	[Fact]
 	public void Serialize_SInt32_255() {
-		Assert.Equal("FF00", LightWeight.Serialize(255).ToHexString());
+		Assert.Equal(new Byte[]{0xFF, 0x00}, LightWeight.Serialize(255));
 	}
 	
 	[Fact]

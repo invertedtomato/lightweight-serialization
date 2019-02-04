@@ -9,9 +9,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		private Int32 Position;
 		public Int32 TotalLength { get; private set; }
 		
-		public Int32 Length {
-			get { return Underlying.Length; }
-		}
+		public Int32 Length => Underlying.Length;
 
 		public NodeSet(Int32 length) {
 			Underlying = new Node[length];
