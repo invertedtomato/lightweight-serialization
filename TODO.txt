@@ -1,6 +1,14 @@
+ - Consider how to beat MsgPack! https://github.com/msgpack/msgpack/blob/master/spec.md
+    => Collapse low values into length field
+    => MLLLVVVV [MLLLLLLL [MLLLLLLL]] [VVVVVVVV [VVVVVVVV]]
+       M - More bytes
+       L - Length
+ - Throw SchemaMismatchException() instead of ProtocolViolation
+ 
  - Test for things that shouldn't be serializable?
  - Add options on field attribute
  - Add datetime support
  - Add timespan support
+ - Add float support
  - readme
  - NuGet

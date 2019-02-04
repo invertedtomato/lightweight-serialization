@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Other", "Other", "{EA9E9CDA
 ProjectSection(SolutionItems) = preProject
 	README.md = README.md
 	PROTOCOL.md = PROTOCOL.md
+	TODO.txt = TODO.txt
 EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{40049C83-AB10-479C-B0AF-DBBB30574E0D}"
