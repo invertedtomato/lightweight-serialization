@@ -23,7 +23,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		}
 
 		public IEnumerator<Node> GetEnumerator() {
-			return (IEnumerator<Node>) Underlying.GetEnumerator();
+			return ((IEnumerable<Node>) Underlying).GetEnumerator();
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() {
