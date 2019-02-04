@@ -336,7 +336,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 4) {
 					return BitConverter.ToInt32(buffer.Read(4), 0);
 				} else {
-					throw new DataFormatException($"SInt32 values can be 0, 1, 2 or 4 bytes, but {count} found..");
+					var dump = buffer.Read(5);
+					throw new DataFormatException($"SInt32 values can be 0, 1, 2 or 4 bytes, but {count} found.");
 				}
 			};
 		}
@@ -623,7 +624,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 					// Deserialize value
 					count -= VLQ.DecompressUnsigned(buffer, out var valueLength);
 					var valueValue = valueDecoder.DynamicInvoke(buffer, (Int32)valueLength);
-					count -= (Int32)keyLength;
+					count -= (Int32)valueLength;
 
 					// Add to output
 					output[keyValue] = valueValue;

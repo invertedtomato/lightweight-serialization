@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using InvertedTomato.Compression.Integers;
+using InvertedTomato.IO.Buffers;
 using InvertedTomato.Serialization.LightWeightSerialization;
 using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
@@ -160,6 +162,13 @@ public class LightWeightTests {
 	}
 
 	[Fact]
+	public void Deserialize_Dict_Empty() {
+		var result = LightWeight.Deserialize<Dictionary<Int32, String>>(new Byte[] {});
+
+		Assert.Equal(new Dictionary<Int32, String> {}, result);
+	}
+	
+	[Fact]
 	public void Deserialize_Dict_SInt32_String() {
 		var result = LightWeight.Deserialize<Dictionary<Int32, String>>(new Byte[] {
 			0x81, 0x01, // 1 =
@@ -177,7 +186,45 @@ public class LightWeightTests {
 		}, result);
 	}
 
-
+	[Fact]
+	public void Deserialize_IDict_Nested() {
+		var result = LightWeight.Deserialize<Dictionary<Int32,Dictionary<Int32,String>>>(new Byte[] {
+			0x81, // [K]=
+			0x01, //   1
+			0x8E, // [V]=
+			0x81, //   [K]=
+			0x02, //     2
+			0x84, //   [V]=
+			(Byte) 'c', (Byte) 'a', (Byte) 'k', (Byte) 'e', // cake
+			0x81, //   [K]=
+			0x03, //     3
+			0x84, //   [V]=
+			(Byte) 'f', (Byte) 'o', (Byte) 'o', (Byte) 'd', // food
+			0x81, // [K]=
+			0x08, //   8
+			0x8E, // [V]=
+			0x81, //   [K]=
+			0x04, //     4
+			0x84, //   [V]=
+			(Byte) 'f', (Byte) 'o', (Byte) 'r', (Byte) 'k', // fork
+			0x81, //   [K]=
+			0x05, //     5
+			0x84, //   [V]=
+			(Byte) 'f', (Byte) 'o', (Byte) 'o', (Byte) 'd' // food
+		});
+		Assert.Equal(new Dictionary<Int32,Dictionary<Int32,String>>() {
+			{ 1, new Dictionary<Int32, String>() {
+				{2, "cake"},
+				{3, "food"}
+			}},
+			{ 8, new Dictionary<Int32, String>() {
+				{4, "fork"},
+				{5, "food"}
+			}}
+		},result);
+	}
+	
+	
 	[Fact]
 	public void Deserialize_List_SInt32() {
 		var result = LightWeight.Deserialize<List<Int32>>(new Byte[] {
@@ -263,7 +310,7 @@ public class LightWeightTests {
 	public void Deserialize_SInt32_255() {
 		Assert.Equal(255, LightWeight.Deserialize<Int32>(new Byte[] {0xFF, 0}));
 	}
-	
+
 	[Fact]
 	public void Deserialize_SInt32_Min() {
 		Assert.Equal(Int32.MinValue, LightWeight.Deserialize<Int32>(new Byte[] {0, 0, 0, 128}));
@@ -411,7 +458,7 @@ public class LightWeightTests {
 			0x81, // [1]=
 			0x02, //   2
 			0x81, // [2]=
-			0x03  //   3
+			0x03 //   3
 		}, serialized);
 	}
 
@@ -483,7 +530,7 @@ public class LightWeightTests {
 			0x81, // [1]=
 			0x02, //   2
 			0x81, // [2]=
-			0x03  //   3
+			0x03 //   3
 		}, serialized);
 	}
 
@@ -495,6 +542,15 @@ public class LightWeightTests {
 	[Fact]
 	public void Serialize_Bool_True() {
 		Assert.Equal(new Byte[] {0x00}, LightWeight.Serialize(true));
+	}
+
+	[Fact]
+	public void Serialize_IDict_Empty() {
+		var serialized = LightWeight.Serialize(new Dictionary<Int32, String> {
+		});
+
+		Assert.Equal(new Byte[] {
+		}, serialized);
 	}
 
 	[Fact]
@@ -514,7 +570,46 @@ public class LightWeightTests {
 			0x81, (Byte) 'c' // 'c'
 		}, serialized);
 	}
+	
+	[Fact]
+	public void Serialize_IDict_Nested() {
+		var serialized = LightWeight.Serialize(new Dictionary<Int32,Dictionary<Int32,String>>() {
+			{ 1, new Dictionary<Int32, String>() {
+				{2, "cake"},
+				{3, "food"}
+			}},
+			{ 8, new Dictionary<Int32, String>() {
+				{4, "fork"},
+				{5, "food"}
+			}}
+		});
 
+		Assert.Equal(new Byte[] {
+			0x81, // [K]=
+			0x01, //   1
+			0x8E, // [V]=
+			0x81, //   [K]=
+			0x02, //     2
+			0x84, //   [V]=
+			(Byte)'c', (Byte)'a', (Byte)'k', (Byte)'e', // cake
+			0x81, //   [K]=
+			0x03, //     3
+			0x84, //   [V]=
+			(Byte)'f', (Byte)'o', (Byte)'o', (Byte)'d', // food
+			0x81, // [K]=
+			0x08, //   8
+			0x8E, // [V]=
+			0x81, //   [K]=
+			0x04, //     4
+			0x84, //   [V]=
+			(Byte)'f', (Byte)'o', (Byte)'r', (Byte)'k', // fork
+			0x81, //   [K]=
+			0x05, //     5
+			0x84, //   [V]=
+			(Byte)'f', (Byte)'o', (Byte)'o', (Byte)'d' // food
+		}.ToHexString(), serialized.ToHexString());
+	}
+	
 	[Fact]
 	public void Serialize_IList_SInt32() {
 		var serialized = LightWeight.Serialize(new List<Int32> {1, 2, 3});
@@ -525,12 +620,12 @@ public class LightWeightTests {
 			0x81, // [1]=
 			0x02, //   2
 			0x81, // [2]=
-			0x03  //   3
+			0x03 //   3
 		}, serialized);
 	}
-
+	
 	[Fact]
-	public void Serialize_POCO_Basic() {
+	public void Serialize_POCO() {
 		var serialized = LightWeight.Serialize(new ThreeInts {
 			A = 1,
 			B = 9,
@@ -548,7 +643,7 @@ public class LightWeightTests {
 	}
 
 	[Fact]
-	public void Serialize_POCO_Complex() {
+	public void Serialize_POCO_Nested() {
 		var serialized = LightWeight.Serialize(new Layered {
 			Y = "test",
 			Z = new ThreeInts {
@@ -557,7 +652,7 @@ public class LightWeightTests {
 				C = 1000
 			}
 		});
-		
+
 		Assert.Equal(new Byte[] {
 			0x84, // Y=
 			0x74, 0x65, 0x73, 0x74, // "test"
@@ -604,9 +699,9 @@ public class LightWeightTests {
 
 	[Fact]
 	public void Serialize_SInt32_255() {
-		Assert.Equal(new Byte[]{0xFF, 0x00}, LightWeight.Serialize(255));
+		Assert.Equal(new Byte[] {0xFF, 0x00}, LightWeight.Serialize(255));
 	}
-	
+
 	[Fact]
 	public void Serialize_SInt32_Min() {
 		Assert.Equal(new Byte[] {0, 0, 0, 0x80}, LightWeight.Serialize(Int32.MinValue));
@@ -701,5 +796,21 @@ public class LightWeightTests {
 	[Fact]
 	public void Serialize_UInt8_Min() {
 		Assert.Equal(new Byte[] { }, LightWeight.Serialize(0));
+	}
+
+	[Fact]
+	public void SerializeDeserialize_Int32_Neg1000_1000() {
+		var lw = new LightWeight();
+
+		using (var buffer = new MemoryStream()) {
+			for (var input = -10000; input < 10000; input++) {
+				var length = lw.Encode(input, buffer);
+				buffer.Seek(0, SeekOrigin.Begin);
+
+				var output = lw.Decode<Int32>(buffer, length);
+				Assert.Equal(input, output);
+				buffer.Seek(0, SeekOrigin.Begin);
+			}
+		}
 	}
 }

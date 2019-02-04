@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using InvertedTomato.IO.Buffers;
 using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
@@ -9,31 +10,39 @@ using Newtonsoft.Json;
 namespace StressTest {
 	class Program {
 		private static void Main(String[] args) {
+			var runs = 3;
+			var iterations = 25;
+
 			// Open test data (Book => Chapter => Verse => Content)
 			var bible = JsonConvert.DeserializeObject<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(File.ReadAllText("esv.json"));
 
-			// Setup output
-			var output = new MemoryStream();
+			// Do a number of runs
+			for (var run = 0; run < runs; run++) {
+				// Start timer
+				var timer = Stopwatch.StartNew();
 
-			// Start timer
-			var timer = Stopwatch.StartNew();
+				// Start LightWeight
+				var lw = new LightWeight();
 
-			// Start LightWeight
-			var lw = new LightWeight();	
+				for (var itr = 0; itr < 25; itr++) {
+					// Setup output
+					using (var output = new MemoryStream()) {
+						// Encode
+						var length = lw.Encode(bible, output);
 
-			for (var i = 0; i < 25; i++) {
-				// Encode
-				var length = lw.Encode(bible, output);
+						// Rewind buffer
+						output.Seek(0, SeekOrigin.Begin);
 
-				// Rewind buffer
-				output.Seek(0, SeekOrigin.Begin);
+						// Decode
+						lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output, length);
+					}
+				}
 
-				// Decode
-				lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output, length);
+				Console.WriteLine($"{iterations} iterations in {timer.ElapsedMilliseconds}ms");
 			}
 
-			Console.WriteLine(timer.ElapsedMilliseconds);
-			Console.ReadKey(true);
+
+			// 4-Feb-19 5984ms
 		}
 	}
 }
