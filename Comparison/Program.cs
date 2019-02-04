@@ -11,20 +11,12 @@ using Newtonsoft.Json;
 
 namespace Comparison {
 	internal class inputifinpuProgram {
-		/* After C'tof input #1
+		/* 5-Feb-19
 		 *FORMAT      SIZE   SERIALIZE    DESERIALIZE
-		    JSON:      4,062KB    82ms    34ms
-		    ProtoBuff: 4,024KB   531ms   161ms
-		    MsgPack:   3,905KB   490ms   144ms
-		    LW:        3,918KB   206ms   194ms
-		 */
-
-		/* After adding ScatterBuffer
-		 *FORMAT      SIZE   SERIALIZE    DESERIALIZE
-		    JSON:      4,062KB    75ms    30ms
-		    ProtoBuff: 4,024KB   417ms    97ms
-		    MsgPack:   3,905KB   258ms    82ms
-		    LW:        3,918KB   176ms    -
+			JSON:      4,062KB   143ms    84ms
+			ProtoBuff: 4,024KB   239ms    84ms
+			MsgPack:   3,905KB   109ms    90ms
+			LW:        3,918KB   182ms   179ms
 		 */
 
 		private static void Main(String[] args) {
@@ -75,6 +67,7 @@ namespace Comparison {
 			var lwSerialize = Stopwatch.StartNew();
 			var length = lw.Encode(bible, lwOutput);
 			lwSerialize.Stop();
+			lwOutput.Seek(0, SeekOrigin.Begin);
 			var lwDeserialize = Stopwatch.StartNew();
 			var lwResult = lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput, length);
 			if (lwResult.Count != bible.Count) {
