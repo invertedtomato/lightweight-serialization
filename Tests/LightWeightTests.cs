@@ -185,8 +185,8 @@ public class LightWeightTests {
 			0x01, // 1
 			0x81, // [1]
 			0x02, // 2
-			0x81, // [3]
-			0xff, // 255
+			0x82, // [3]
+			0xFF, 0x00, // 255
 			0x81, // [2]
 			0x03 // 3
 		});
@@ -259,6 +259,11 @@ public class LightWeightTests {
 		Assert.Equal(Int32.MaxValue, LightWeight.Deserialize<Int32>(new Byte[] {255, 255, 255, 127}));
 	}
 
+	[Fact]
+	public void Deserialize_SInt32_255() {
+		Assert.Equal(255, LightWeight.Deserialize<Int32>(new Byte[] {0xFF, 0}));
+	}
+	
 	[Fact]
 	public void Deserialize_SInt32_Min() {
 		Assert.Equal(Int32.MinValue, LightWeight.Deserialize<Int32>(new Byte[] {0, 0, 0, 128}));
@@ -606,6 +611,11 @@ public class LightWeightTests {
 		Assert.Equal(new Byte[] {0xff, 0xff, 0xff, 0x7f}, LightWeight.Serialize(Int32.MaxValue));
 	}
 
+	[Fact]
+	public void Serialize_SInt32_255() {
+		Assert.Equal("FF00", LightWeight.Serialize(255).ToHexString());
+	}
+	
 	[Fact]
 	public void Serialize_SInt32_Min() {
 		Assert.Equal(new Byte[] {0, 0, 0, 0x80}, LightWeight.Serialize(Int32.MinValue));

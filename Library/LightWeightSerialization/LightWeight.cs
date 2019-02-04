@@ -256,7 +256,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				}
 #if DEBUG
 				if (count != 1) {
-					throw new DataFormatException("Boolean values can be no more than 1 byte long.");
+					throw new DataFormatException($"Boolean values can be no more than 1 byte long, but {count} found..");
 				}
 #endif
 				if (buffer.ReadByte() != 0x00) {
@@ -284,7 +284,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 1) {
 					return (SByte) buffer.ReadByte();
 				} else {
-					throw new DataFormatException("SInt64 values can be 0 or 1 bytes.");
+					throw new DataFormatException($"SInt64 values can be 0 or 1 bytes, but {count} found..");
 				}
 			};
 		}
@@ -307,10 +307,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			return (buffer, count) => {
 				if (count < 2) {
 					return smaller(buffer, count);
-				} else if (count == 4) {
+				} else if (count == 2) {
 					return BitConverter.ToInt16(buffer.Read(2), 0);
 				} else {
-					throw new DataFormatException("SInt64 values can be 0, 1 or 2 bytes.");
+					throw new DataFormatException($"SInt64 values can be 0, 1 or 2 bytes, but {count} found.");
 				}
 			};
 		}
@@ -336,7 +336,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 4) {
 					return BitConverter.ToInt32(buffer.Read(4), 0);
 				} else {
-					throw new DataFormatException("SInt32 values can be 0, 1, 2 or 4 bytes.");
+					throw new DataFormatException($"SInt32 values can be 0, 1, 2 or 4 bytes, but {count} found..");
 				}
 			};
 		}
@@ -361,7 +361,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 8) {
 					return BitConverter.ToInt64(buffer.Read(8), 0);
 				} else {
-					throw new DataFormatException("SInt64 values can be 0, 1, 2, 4 or 8 bytes.");
+					throw new DataFormatException($"SInt64 values can be 0, 1, 2, 4 or 8 bytes, but {count} found..");
 				}
 			};
 		}
@@ -383,7 +383,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 1) {
 					return (Byte) buffer.ReadByte();
 				} else {
-					throw new DataFormatException("UInt64 values can be 0 or 1 bytes.");
+					throw new DataFormatException($"UInt64 values can be 0 or 1 bytes, but {count} found..");
 				}
 			};
 		}
@@ -408,7 +408,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 2) {
 					return BitConverter.ToUInt16(buffer.Read(2), 0);
 				} else {
-					throw new DataFormatException("UInt64 values can be 0, 1 or 2 bytes.");
+					throw new DataFormatException($"UInt64 values can be 0, 1 or 2 bytes, but {count} found..");
 				}
 			};
 		}
@@ -432,7 +432,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 4) {
 					return BitConverter.ToUInt32(buffer.Read(4), 0);
 				} else {
-					throw new DataFormatException("UInt32 values can be 0, 1, 2 or 4 bytes.");
+					throw new DataFormatException($"UInt32 values can be 0, 1, 2 or 4 bytes, but {count} found..");
 				}
 			};
 		}
@@ -457,7 +457,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				} else if (count == 8) {
 					return BitConverter.ToUInt64(buffer.Read(8), 0);
 				} else {
-					throw new DataFormatException("UInt64 values can be 0, 1, 2, 4 or 8 bytes.");
+					throw new DataFormatException($"UInt64 values can be 0, 1, 2, 4 or 8 bytes, but {count} found..");
 				}
 			};
 		}
@@ -617,12 +617,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				while (count > 0) {
 					// Deserialize key
 					count -= VLQ.DecompressUnsigned(buffer, out var keyLength);
-					var keyValue = keyDecoder.DynamicInvoke(buffer, keyLength);
+					var keyValue = keyDecoder.DynamicInvoke(buffer, (Int32)keyLength);
 					count -= (Int32)keyLength;
 
 					// Deserialize value
 					count -= VLQ.DecompressUnsigned(buffer, out var valueLength);
-					var valueValue = valueDecoder.DynamicInvoke(buffer, valueLength);
+					var valueValue = valueDecoder.DynamicInvoke(buffer, (Int32)valueLength);
 					count -= (Int32)keyLength;
 
 					// Add to output
@@ -756,7 +756,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 					}
 
 					// Deserialize value
-					var value = decoders[index].DynamicInvoke(buffer, length);
+					var value = decoders[index].DynamicInvoke(buffer, (Int32)length);
 					count -= (Int32)length;
 
 					// Set it on property
