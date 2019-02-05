@@ -3,24 +3,24 @@ using System.IO;
 using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
-	public class SInt8CoderGenerator  : ICoderGenerator{
+	public class SInt8CoderGenerator : ICoderGenerator {
 		private readonly VLQCodec VLQ = new VLQCodec();
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T) == typeof(SByte);
 		}
 
-		public Delegate GenerateEncoder(Type type, Func<Type,Delegate> recurse){
+		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
 			return new Func<SByte, Node>(value => {
 				if (value == 0) {
 					return LightWeight.EmptyNode;
+				} else {
+					return Node.Leaf(VLQCodec.One, new Byte[] {(Byte) value});
 				}
-
-				return Node.Leaf(VLQCodec.One, new[] {(Byte) value});
 			});
 		}
 
-		public Delegate GenerateDecoder(Type type, Func<Type,Delegate> recurse) {
+		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
 			return new Func<Stream, Int32, SByte>((buffer, count) => {
 				if (count == 0) {
 					return 0;

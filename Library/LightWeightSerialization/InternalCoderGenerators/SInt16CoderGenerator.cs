@@ -12,10 +12,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		}
 
 		public Delegate GenerateEncoder(Type type, Func<Type,Delegate> recurse) {
-			return new Func<Int16, Node>(value => {if (value == 0) {
+			return new Func<Int16, Node>(value => {
+				if (value == 0) {
 					return LightWeight.EmptyNode;
 				} else if (value >= SByte.MinValue && value <= Byte.MaxValue) {
-					return Node.Leaf(VLQCodec.One, BitConverter.GetBytes((SByte) value));
+					return Node.Leaf(VLQCodec.One, new Byte[] {(Byte) value});
 				} else {
 					return Node.Leaf(VLQCodec.Two, BitConverter.GetBytes(value));
 				}

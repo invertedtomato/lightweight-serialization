@@ -18,7 +18,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				if (value == 0) {
 					return LightWeight.EmptyNode;
 				} else if (value <= Byte.MaxValue) {
-					return Node.Leaf(VLQCodec.One, BitConverter.GetBytes((Byte) value));
+					return Node.Leaf(VLQCodec.One, new Byte[] {(Byte) value});
 				} else {
 					return Node.Leaf(VLQCodec.Two, BitConverter.GetBytes(value));
 				}
