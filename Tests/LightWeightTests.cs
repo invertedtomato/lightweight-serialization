@@ -8,7 +8,7 @@ using InvertedTomato.Serialization.LightWeightSerialization;
 using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
 
-public class LightWeightTests {
+public class LightWeightTests { // TODO: Test serializing integers at all levels (eg 32bit in 64bit field)
 	[Fact]
 	public void Deserialize_Array_Bool() {
 		var result = LightWeight.Deserialize<Boolean[]>(new Byte[] {

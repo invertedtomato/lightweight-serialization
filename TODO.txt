@@ -1,8 +1,11 @@
  - Consider how to beat MsgPack! https://github.com/msgpack/msgpack/blob/master/spec.md
     => Collapse low values into length field
-    => MLLLVVVV [MLLLLLLL [MLLLLLLL]] [VVVVVVVV [VVVVVVVV]]
-       M - More bytes
-       L - Length
+    => MIAAAAAA [AAAAAA [AAAAAA ...]] [BBBBBBBB [BBBBBBBB ...]]]
+       M - Another A byte follows
+       I - Is A the numeric value, otherwise it is the length of B following
+       A - Numeric value either representing the B length, or is the value itself (Null, Bool, Int)
+       B - Bytes (String, Map, Array, Float, DateTime, TimeSpan)
+    NO - Use field type instead
  - Throw SchemaMismatchException() instead of ProtocolViolation
  
  - Test for things that shouldn't be serializable?
@@ -10,5 +13,6 @@
  - Add datetime support
  - Add timespan support
  - Add float support
+ - Add null-able support
  - readme
  - NuGet
