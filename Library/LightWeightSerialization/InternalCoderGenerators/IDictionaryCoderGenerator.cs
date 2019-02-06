@@ -9,7 +9,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		private readonly VLQCodec VLQ = new VLQCodec();
 
 		public Boolean IsCompatibleWith<T>() {
-			return typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T));
+			return typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T));
 		}
 
 		public Delegate GenerateEncoder(Type type, Func<Type,Delegate> recurse) {

@@ -22,6 +22,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 		public LightWeight() {
 			// Load internal coder generators
+			LoadCoderGenerator(new ClassCoderGenerator()); // Must be first, so that it's considered a last resort
+			LoadCoderGenerator(new IDictionaryCoderGenerator());
+			LoadCoderGenerator(new IListCoderGenerator());
+			LoadCoderGenerator(new ArrayCoderGenerator());
+
 			LoadCoderGenerator(new BooleanCoderGenerator());
 			LoadCoderGenerator(new SInt8CoderGenerator());
 			LoadCoderGenerator(new SInt16CoderGenerator());
@@ -33,10 +38,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			LoadCoderGenerator(new UInt64CoderGenerator());
 			LoadCoderGenerator(new StringCoderGenerator());
 			
-			LoadCoderGenerator(new ArrayCoderGenerator());
-			LoadCoderGenerator(new ClassCoderGenerator());
-			LoadCoderGenerator(new IDictionaryCoderGenerator());
-			LoadCoderGenerator(new IListCoderGenerator());
+			
 		}
 
 		public Int32 Encode<T>(T value, Stream buffer) {
@@ -97,7 +99,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		}
 
 		public void LoadCoderGenerator(ICoderGenerator generator) {
-			CodersGenerators.Add(generator);
+			CodersGenerators.Insert(0, generator);
 		}
 
 		public void PrepareFor<T>() {

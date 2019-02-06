@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Reflection;
 using InvertedTomato.Compression.Integers;
@@ -8,10 +9,17 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		private readonly VLQCodec VLQ = new VLQCodec();
 
 		public Boolean IsCompatibleWith<T>() {
+			// This explicitly does not support lists or dictionaries
+			if (typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T)) ||
+			    typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T))) {
+				// TODO: Find a better way to match POCOS
+				return false;
+			}
+
 			return typeof(T).GetTypeInfo().IsClass;
 		}
 
-		public Delegate GenerateEncoder(Type type, Func<Type,Delegate> recurse){
+		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
 			// Find all properties decorated with LightWeightProperty attribute
 
 			var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
@@ -45,9 +53,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 			// If no properties, shortcut the whole thing and return a blank
 			if (maxIndex == -1) {
-				return new Func<Object, Node>(value => {
-					return LightWeight.EmptyNode;
-				});
+				return new Func<Object, Node>(value => { return LightWeight.EmptyNode; });
 			}
 
 			return new Func<Object, Node>(value => {
@@ -80,13 +86,13 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Encode length
-				var encodedLength = VLQ.CompressUnsigned((UInt64)childNodes.TotalLength).ToArray();
+				var encodedLength = VLQ.CompressUnsigned((UInt64) childNodes.TotalLength).ToArray();
 
 				return Node.NonLeaf(encodedLength, childNodes);
 			});
 		}
 
-		public Delegate GenerateDecoder(Type type, Func<Type,Delegate> recurse) {
+		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
 			// Build vector of property types
 			var fields = new FieldInfo[Byte.MaxValue];
 			var decoders = new Delegate [Byte.MaxValue];
@@ -136,8 +142,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 					}
 
 					// Deserialize value
-					var value = decoders[index].DynamicInvoke(buffer, (Int32)length);
-					count -= (Int32)length;
+					var value = decoders[index].DynamicInvoke(buffer, (Int32) length);
+					count -= (Int32) length;
 
 					// Set it on property
 					field.SetValue(output, value);

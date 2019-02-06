@@ -9,6 +9,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		private readonly VLQCodec VLQ = new VLQCodec();
 
 		public Boolean IsCompatibleWith<T>() {
+			// This explicitly does not support arrays
+			if (typeof(T).IsArray) {
+				return false;
+			}
+
 			return typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T));
 		}
 
