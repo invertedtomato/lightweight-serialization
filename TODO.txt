@@ -1,12 +1,7 @@
  - Consider how to beat MsgPack! https://github.com/msgpack/msgpack/blob/master/spec.md
-    => Collapse low values into length field
-    => MIAAAAAA [AAAAAA [AAAAAA ...]] [BBBBBBBB [BBBBBBBB ...]]]
-       M - Another A byte follows
-       I - Is A the numeric value, otherwise it is the length of B following
-       A - Numeric value either representing the B length, or is the value itself (Null, Bool, Int)
-       B - Bytes (String, Map, Array, Float, DateTime, TimeSpan)
-    NO - Use field type instead
+    => Collapse low values into length field based on field data type
  - Throw SchemaMismatchException() instead of ProtocolViolation
+ - Only use POCO coder for classes decorated with a LightWeight attribute so that it doesn't accentially get used on other things with nil result
  
  - Test for things that shouldn't be serializable?
  - Add options on field attribute

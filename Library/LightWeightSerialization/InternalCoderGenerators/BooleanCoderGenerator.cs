@@ -4,6 +4,11 @@ using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class BooleanCoderGenerator : ICoderGenerator {
+		private const Byte False = 0x00;
+		private const Byte True = 0x01;
+		private static readonly Node FalseNode = new Node(new Byte[] {False});
+		private static readonly Node TrueNode = new Node(new Byte[] {True});
+
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T) == typeof(Boolean);
 		}
@@ -11,28 +16,21 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
 			return new Func<Boolean, Node>((value) => {
 				if (value) {
-					return Node.Leaf(VLQCodec.One, new Byte[] {0x00});
+					return TrueNode;
 				} else {
-					return LightWeight.EmptyNode;
+					return FalseNode;
 				}
 			});
 		}
 
 		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
-			return new Func<Stream, Int32, Boolean>((stream, count) => {
-				if (count == 0) {
-					return false;
+			return new Func<Stream, Boolean>((stream) => {
+				var v = stream.ReadByte();
+				switch (v) {
+					case True: return true;
+					case False: return false;
+					default: throw new SchemaMismatchException($"Boolean value must be either {True} or {False}, but {v} given.");
 				}
-#if DEBUG
-				if (count != 1) {
-					throw new DataFormatException($"Boolean values can be no more than 1 byte long, but {count} found..");
-				}
-#endif
-				if (stream.ReadByte() != 0x00) {
-					throw new DataFormatException("Boolean values cannot be anything other than 0x00.");
-				}
-
-				return true;
 			});
 		}
 	}

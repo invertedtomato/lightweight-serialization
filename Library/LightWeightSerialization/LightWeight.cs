@@ -18,7 +18,6 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		private readonly Object Sync = new Object();
 
 		private static readonly Byte[] EmptyArray = new Byte[] { };
-		public static readonly Node EmptyNode = Node.Leaf(VLQCodec.Zero, EmptyArray);
 
 		public LightWeight() {
 			// Load internal coder generators
@@ -55,7 +54,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			var output = rootSerializer(value);
 
 			// Squash notes tree into stream
-			return Squash(output, buffer);
+			foreach (var payload in output) {
+				buffer.Write(payload);
+			}
+
+			return output.TotalLength;
 		}
 
 		public T Decode<T>(Stream input, Int32 count) {
@@ -74,28 +77,6 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 			// Invoke root serializer
 			return (T) root.DynamicInvoke(input, count);
-		}
-
-		private Int32 Squash(Node node, Stream buffer) {
-			// If this is a leaf node..
-			if (node.IsLeaf) {
-				// Write leaf
-				buffer.Write(node.EncodedValue, 0, node.EncodedValue.Length);
-				return node.EncodedValue.Length;
-			} else {
-				// Iterate horizontally
-				var count = 0;
-				foreach (var childNode in node.ChildNodes) {
-					// Write length
-					buffer.Write(childNode.EncodedValueLength, 0, childNode.EncodedValueLength.Length);
-					count += childNode.EncodedValueLength.Length;
-
-					// Recurse vertically
-					count += Squash(childNode, buffer);
-				}
-
-				return count;
-			}
 		}
 
 		public void LoadCoderGenerator(ICoderGenerator generator) {

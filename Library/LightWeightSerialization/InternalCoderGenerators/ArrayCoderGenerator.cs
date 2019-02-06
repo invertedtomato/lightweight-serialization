@@ -6,7 +6,7 @@ using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ArrayCoderGenerator : ICoderGenerator {
-		private readonly VLQCodec VLQ = new VLQCodec();
+		private static readonly Node EmptyNode = new Node(Vlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T).IsArray;
@@ -19,19 +19,20 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			return new Func<Array, Node>(value => {
 				// Handle nulls
 				if (null == value) {
-					return LightWeight.EmptyNode;
+					// TODO: this null handling is incorrect. It's not possible to determine the difference between NULL and Empty at the far end
+					return EmptyNode;
 				}
 
 				// Serialize elements
-				var childNodes = new NodeSet(value.Length);
+				var output = new Node();
 				foreach (var subValue in value) {
-					childNodes.Add((Node) valueEncoder.DynamicInvoke(subValue));
+					output.Append((Node) valueEncoder.DynamicInvoke(subValue));
 				}
 
 				// Encode length
-				var encodedLength = VLQ.CompressUnsigned((UInt64) childNodes.TotalLength).ToArray();
+				output.Prepend(Vlq.Encode((UInt64) value.Length)); // Number of elements, not number of bytes
 
-				return Node.NonLeaf(encodedLength, childNodes);
+				return output;
 			});
 		}
 
@@ -39,18 +40,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get deserializer for sub items
 			var valueDecoder = recurse(type.GetElementType());
 
-			return new Func<Stream, Int32, Array>((buffer, count) => {
+			return new Func<Stream, Array>((input) => {
+				var length = Vlq.Decode(input);
+
 				// Instantiate list
 				var container = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(type.GetElementType()));
 
 				// Deserialize until we reach length limit
-				while (count > 0) {
-					// Extract length
-					count -= VLQ.DecompressUnsigned(buffer, out var length);
-
+				for (UInt64 i = 0; i < length; i++) {
 					// Deserialize element
-					var element = valueDecoder.DynamicInvoke(buffer, (Int32) length);
-					count -= (Int32) length;
+					var element = valueDecoder.DynamicInvoke(input);
 
 					// Add to output
 					container.Add(element);

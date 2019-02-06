@@ -3,16 +3,17 @@ using System.Collections;
 using System.IO;
 using System.Reflection;
 using InvertedTomato.Compression.Integers;
+using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ClassCoderGenerator : ICoderGenerator {
-		private readonly VLQCodec VLQ = new VLQCodec();
+		private static readonly Node EmptyNode = new Node(Vlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support lists or dictionaries
 			if (typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T)) ||
 			    typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T))) {
-				// TODO: Find a better way to match POCOS
+				// TODO: Instead only accept classes with a specific attribute
 				return false;
 			}
 
@@ -21,10 +22,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
 			// Find all properties decorated with LightWeightProperty attribute
-
 			var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
-			var encoders = new Delegate[Byte.MaxValue]; // Index => Encoder
-			var maxIndex = -1;
+			var coders = new Delegate[Byte.MaxValue]; // Index => Encoder/Decoder
+
+			var fieldCount = -1;
 			foreach (var property in type.GetRuntimeFields()) {
 				// Get property attribute which tells us the properties' index
 				var attribute = (LightWeightPropertyAttribute) property.GetCustomAttribute(typeof(LightWeightPropertyAttribute), false);
@@ -39,8 +40,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Note the max index used
-				if (attribute.Index > maxIndex) {
-					maxIndex = attribute.Index;
+				if (attribute.Index > fieldCount) {
+					fieldCount = attribute.Index;
 				}
 
 				// Find/create encoder
@@ -48,60 +49,62 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 				// Store property in lookup
 				fields[attribute.Index] = property;
-				encoders[attribute.Index] = encoder;
+				coders[attribute.Index] = encoder;
 			}
 
 			// If no properties, shortcut the whole thing and return a blank
-			if (maxIndex == -1) {
-				return new Func<Object, Node>(value => { return LightWeight.EmptyNode; });
+			if (fieldCount == -1) {
+				return new Func<Object, Node>(value => { return EmptyNode; });
+			}
+
+			// Check that no indexes have been missed
+			for (var i = 0; i < fieldCount; i++) {
+				if (null == fields[i]) {
+					throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}.");
+				}
 			}
 
 			return new Func<Object, Node>(value => {
 				// Handle nulls
 				if (null == value) {
-					return LightWeight.EmptyNode;
+					return EmptyNode; // TODO: Not the correct way to handle nulls. Indistinguishable from empty
 				}
 
-				var childNodes = new NodeSet(maxIndex + 1);
+				var output = new Node();
 
-				for (Byte i = 0; i <= maxIndex; i++) {
+				for (Byte i = 0; i <= fieldCount; i++) {
 					var field = fields[i];
-					var encoder = encoders[i];
+					var encoder = coders[i];
 
-					if (null == field) {
-						childNodes.Add(LightWeight.EmptyNode);
-					} else {
-						// Get the serializer for the sub-item
-						var subType = recurse(field.FieldType);
+					// Get the serializer for the sub-item
+					var subType = recurse(field.FieldType);
 
-						// Get it's method info
-						var subMethodInfo = subType.GetMethodInfo();
+					// Get it's method info
+					var subMethodInfo = subType.GetMethodInfo();
 
-						// Extract value
-						var v = field.GetValue(value);
+					// Extract value
+					var v = field.GetValue(value);
 
-						// Add to output
-						childNodes.Add((Node) encoder.DynamicInvoke(v));
-					}
+					// Add to output
+					output.Append((Node) encoder.DynamicInvoke(v));
 				}
-
+				
 				// Encode length
-				var encodedLength = VLQ.CompressUnsigned((UInt64) childNodes.TotalLength).ToArray();
-
-				return Node.NonLeaf(encodedLength, childNodes);
+				output.Prepend(Vlq.Encode((UInt64) output.TotalLength)); // Number of bytes
+				
+				return output;
 			});
 		}
 
 		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
-			// Build vector of property types
-			var fields = new FieldInfo[Byte.MaxValue];
-			var decoders = new Delegate [Byte.MaxValue];
-			foreach (var field in type.GetRuntimeFields()) {
-				// TODO: Add property support
-				// Get property attribute which tells us the properties' index
-				var attribute = (LightWeightPropertyAttribute) field.GetCustomAttribute(typeof(LightWeightPropertyAttribute));
+			// Find all properties decorated with LightWeightProperty attribute
+			var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
+			var coders = new Delegate[Byte.MaxValue]; // Index => Encoder/Decoder
 
-				// Skip if not found, or index doesn't match
+			var fieldCount = -1;
+			foreach (var property in type.GetRuntimeFields()) {
+				// Get property attribute which tells us the properties' index
+				var attribute = (LightWeightPropertyAttribute) property.GetCustomAttribute(typeof(LightWeightPropertyAttribute), false);
 				if (null == attribute) {
 					// No attribute found, skip
 					continue;
@@ -112,44 +115,52 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 					throw new DuplicateIndexException($"The index {fields[attribute.Index]} is already used and cannot be reused.");
 				}
 
-				// Find/generate decoder
-				var decoder = recurse(field.FieldType);
+				// Note the max index used
+				if (attribute.Index > fieldCount) {
+					fieldCount = attribute.Index;
+				}
 
-				// Store values in lookup
-				fields[attribute.Index] = field;
-				decoders[attribute.Index] = decoder;
+				// Find/create encoder
+				var decoder = recurse(property.FieldType);
+
+				// Store property in lookup
+				fields[attribute.Index] = property;
+				coders[attribute.Index] = decoder;
 			}
 
-			return new Func<Stream, Int32, Object>((buffer, count) => {
+			// If no properties, shortcut the whole thing and return a blank
+			if (fieldCount == -1) {
+				return new Func<Object, Node>(value => { return EmptyNode; });
+			}
+
+			// Check that no indexes have been missed
+			for (var i = 0; i < fieldCount; i++) {
+				if (null == fields[i]) {
+					throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}.");
+				}
+			}
+
+			return new Func<Stream, Object>((input) => {
 				// Instantiate output
 				var output = Activator.CreateInstance(type);
 
-				// Prepare for object deserialization
-				var index = -1;
+				// Read the length header
+				var length = (Int32)Vlq.Decode(input);
 
-				// Attempt to read field length, if we've reached the end of the payload, abort
-				while (count > 0) {
-					// Get the length in a usable format
-					count -= VLQ.DecompressUnsigned(buffer, out var length);
+				// Isolate bytes for body
+				using (var innerInput = new MemoryStream(input.Read(length))) {  // TODO: Inefficient because it copies a potentially large chunk of memory. Better approach?
+					for (var i = 0; i < fieldCount; i++) {
+						var field = fields[i];
 
-					// Increment the index
-					index++;
+						// Deserialize value
+						var value = coders[i].DynamicInvoke(innerInput);
 
-					// Get field, and skip if it doesn't exist (it'll be ignored)
-					var field = fields[index];
-					if (null == field) {
-						continue;
+						// Set it on property
+						field.SetValue(output, value);
 					}
-
-					// Deserialize value
-					var value = decoders[index].DynamicInvoke(buffer, (Int32) length);
-					count -= (Int32) length;
-
-					// Set it on property
-					field.SetValue(output, value);
 				}
 
-				return output; // (T)
+				return output;
 			});
 		}
 	}
