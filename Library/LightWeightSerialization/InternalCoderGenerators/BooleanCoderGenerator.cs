@@ -1,30 +1,29 @@
 using System;
 using System.IO;
-using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class BooleanCoderGenerator : ICoderGenerator {
 		private const Byte False = 0x00;
 		private const Byte True = 0x01;
-		private static readonly Node FalseNode = new Node(new Byte[] {False});
-		private static readonly Node TrueNode = new Node(new Byte[] {True});
+		private static readonly Node FalseNode = new Node(new[] {False});
+		private static readonly Node TrueNode = new Node(new[] {True});
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T) == typeof(Boolean);
 		}
 
 		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
-			return new Func<Boolean, Node>((value) => {
+			return new Func<Boolean, Node>(value => {
 				if (value) {
 					return TrueNode;
-				} else {
-					return FalseNode;
 				}
+
+				return FalseNode;
 			});
 		}
 
 		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
-			return new Func<Stream, Boolean>((stream) => {
+			return new Func<Stream, Boolean>(stream => {
 				var v = stream.ReadByte();
 				switch (v) {
 					case True: return true;

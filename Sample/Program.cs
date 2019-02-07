@@ -4,7 +4,7 @@
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	internal class Program {
-		static void Main(String[] args) {
+		private static void Main(String[] args) {
 			// Create your object
 			var input = new POCO {
 				Cake = true,

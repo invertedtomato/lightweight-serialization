@@ -1,23 +1,19 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using InvertedTomato.Compression.Integers;
 using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using InvertedTomato.Serialization.LightWeightSerialization.InternalCoders;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	public class LightWeight : ISerializer {
+		private static readonly Byte[] EmptyArray = { };
 		private readonly List<ICoderGenerator> CodersGenerators = new List<ICoderGenerator>();
 		private readonly Dictionary<Type, Delegate> DecoderCache = new Dictionary<Type, Delegate>(); // Func<TOut, T, count>
 		private readonly Dictionary<Type, Delegate> EncoderCache = new Dictionary<Type, Delegate>(); // Func<T, TIn>
 
 		private readonly Object Sync = new Object();
-
-		private static readonly Byte[] EmptyArray = new Byte[] { };
 
 		public LightWeight() {
 			// Load internal coder generators
@@ -36,8 +32,6 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			LoadCoderGenerator(new UInt32CoderGenerator());
 			LoadCoderGenerator(new UInt64CoderGenerator());
 			LoadCoderGenerator(new StringCoderGenerator());
-			
-			
 		}
 
 		public void Encode<T>(T value, Stream buffer) {
@@ -88,7 +82,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				}
 			}
 
-			throw new NotSupportedException($"The type {type.ToString()} is not supported. Load a CoderGenerator to add support.");
+			throw new NotSupportedException($"The type {type} is not supported. Load a CoderGenerator to add support.");
 		}
 
 		protected Delegate GetEncoder<T>() {
@@ -129,7 +123,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 
 		/// <summary>
-		/// Serialize an object into a byte array.
+		///     Serialize an object into a byte array.
 		/// </summary>
 		public static Byte[] Serialize<T>(T value) {
 			using (var buffer = new MemoryStream()) {
@@ -140,7 +134,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		}
 
 		/// <summary>
-		/// Deserialize an object from a byte array.
+		///     Deserialize an object from a byte array.
 		/// </summary>
 		public static T Deserialize<T>(Byte[] payload) {
 			using (var buffer = new MemoryStream(payload)) {

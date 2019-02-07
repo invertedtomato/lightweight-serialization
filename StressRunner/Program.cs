@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
-using InvertedTomato.IO.Buffers;
 using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
 
 namespace StressTest {
-	class Program {
+	internal class Program {
 		private static void Main(String[] args) {
 			var runs = 3;
 			var iterations = 25;

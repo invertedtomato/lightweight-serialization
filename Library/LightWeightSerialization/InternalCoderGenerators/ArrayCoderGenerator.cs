@@ -2,11 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ArrayCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(Vlq.Encode(0));
+		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T).IsArray;
@@ -29,7 +28,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Encode length
-				output.Prepend(Vlq.Encode((UInt64) value.Length)); // Number of elements, not number of bytes
+				output.Prepend(UnsignedVlq.Encode((UInt64) value.Length)); // Number of elements, not number of bytes
 
 				return output;
 			});
@@ -39,8 +38,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get deserializer for sub items
 			var valueDecoder = recurse(type.GetElementType());
 
-			return new Func<Stream, Array>((input) => {
-				var header = Vlq.Decode(input);
+			return new Func<Stream, Array>(input => {
+				var header = UnsignedVlq.Decode(input);
 
 				if (header == 0) {
 					return null;

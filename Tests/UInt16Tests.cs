@@ -1,28 +1,28 @@
 using System;
 using InvertedTomato.Serialization.LightWeightSerialization;
+using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
 
 namespace Tests {
 	public class UInt16Tests {
 		[Fact]
-		public void Serialize_SInt16_Max() {
-			Assert.Equal(new Byte[] {0xff, 0x7f}, LightWeight.Serialize(Int16.MaxValue));
+		public void UInt16DeserializeMax() {
+			Assert.Equal(Byte.MaxValue, LightWeight.Deserialize<Byte>("FF".ParseAsHex()));
 		}
 
 		[Fact]
-		public void Serialize_SInt16_Min() {
-			Assert.Equal(new Byte[] {0, 0x80}, LightWeight.Serialize(Int16.MinValue));
+		public void UInt16DeserializeMin() {
+			Assert.Equal(Byte.MinValue, LightWeight.Deserialize<Byte>("00".ParseAsHex()));
 		}
 
 		[Fact]
-		public void Serialize_SInt16_Zero() {
-			Assert.Equal(new Byte[] { }, LightWeight.Serialize(0));
+		public void UInt16SerializeMax() {
+			Assert.Equal("FF", LightWeight.Serialize(Byte.MaxValue).ToHexString());
 		}
 
-
 		[Fact]
-		public void Deserialize_UInt16() {
-			Assert.Equal(Byte.MaxValue + 1, LightWeight.Deserialize<UInt16>(new Byte[] {0, 1}));
+		public void UInt16SerializeMin() {
+			Assert.Equal("00", LightWeight.Serialize(Byte.MinValue).ToHexString());
 		}
 	}
 }

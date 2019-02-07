@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace InvertedTomato.Serialization {
 	public interface ISerializer {

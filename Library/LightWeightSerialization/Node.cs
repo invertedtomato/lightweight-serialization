@@ -1,17 +1,25 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
-	public class Node :IEnumerable<Byte[]> {
+	public class Node : IEnumerable<Byte[]> {
 		private readonly List<Byte[]> Underlying = new List<Byte[]>();
-
-		public Int32 TotalLength { get; private set; }
 		public Node() { }
 
 		public Node(Byte[] initial) {
 			Append(initial);
+		}
+
+		public Int32 TotalLength { get; private set; }
+
+
+		public IEnumerator<Byte[]> GetEnumerator() {
+			return Underlying.GetEnumerator();
+		}
+
+		IEnumerator IEnumerable.GetEnumerator() {
+			return Underlying.GetEnumerator();
 		}
 
 		public void Append(Byte[] payload) {
@@ -33,20 +41,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			TotalLength += node.TotalLength;
 			Underlying.InsertRange(0, node);
 		}
-		
-		
-		public IEnumerator<Byte[]> GetEnumerator() {
-			return Underlying.GetEnumerator();
-		}
-		IEnumerator IEnumerable.GetEnumerator() {
-			return Underlying.GetEnumerator();
-		}
-		
+
 
 		public override String ToString() {
 			return $"count={Underlying.Count},length={TotalLength}";
 		}
-
-		
 	}
 }

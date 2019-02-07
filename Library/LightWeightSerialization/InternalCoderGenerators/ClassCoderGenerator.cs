@@ -2,12 +2,11 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
-using InvertedTomato.Compression.Integers;
 using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ClassCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(Vlq.Encode(0));
+		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support lists or dictionaries
@@ -88,10 +87,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 					// Add to output
 					output.Append((Node) encoder.DynamicInvoke(v));
 				}
-				
+
 				// Encode length
-				output.Prepend(Vlq.Encode((UInt64) output.TotalLength +1)); // Number of bytes
-				
+				output.Prepend(UnsignedVlq.Encode((UInt64) output.TotalLength + 1)); // Number of bytes
+
 				return output;
 			});
 		}
@@ -140,10 +139,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 			}
 
-			return new Func<Stream, Object>((input) => {
-				
+			return new Func<Stream, Object>(input => {
 				// Read the length header
-				var header = (Int32)Vlq.Decode(input);
+				var header = (Int32) UnsignedVlq.Decode(input);
 
 				// Handle nulls
 				if (header == 0) {
@@ -151,13 +149,14 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Determine length
-				var length = (Int32) header - 1;
-				
+				var length = header - 1;
+
 				// Instantiate output
 				var output = Activator.CreateInstance(type);
 
 				// Isolate bytes for body
-				using (var innerInput = new MemoryStream(input.Read(length))) {  // TODO: Inefficient because it copies a potentially large chunk of memory. Better approach?
+				using (var innerInput = new MemoryStream(input.Read(length))) {
+					// TODO: Inefficient because it copies a potentially large chunk of memory. Better approach?
 					for (var i = 0; i < fieldCount; i++) {
 						var field = fields[i];
 

@@ -2,11 +2,10 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
-using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class IListCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(Vlq.Encode(0));
+		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support arrays (otherwise they could get matched with the below check)
@@ -34,7 +33,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Encode length
-				output.Prepend(Vlq.Encode((UInt64) value.Count + 1));
+				output.Prepend(UnsignedVlq.Encode((UInt64) value.Count + 1));
 
 				return output;
 			});
@@ -44,9 +43,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get deserializer for sub items
 			var valueDecoder = recurse(type.GenericTypeArguments[0]);
 
-			return new Func<Stream, IList>((input) => {
+			return new Func<Stream, IList>(input => {
 				// Read header
-				var header = Vlq.Decode(input);
+				var header = UnsignedVlq.Decode(input);
 
 				// Handle nulls
 				if (header == 0) {
