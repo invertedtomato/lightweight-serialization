@@ -7,6 +7,17 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			return UnsignedVlq.Encode((UInt64) ((value << 1) ^ (value >> 63)));
 		}
 
+		public static Int64 Decode(Byte[] input) {
+#if DEBUG
+			if (null == input) {
+				throw new ArgumentNullException(nameof(input));
+			}
+#endif
+			using (var stream = new MemoryStream(input)) {
+				return Decode(stream);
+			}
+		}
+		
 		public static Int64 Decode(Stream input) {
 			var casted = (Int64) UnsignedVlq.Decode(input);
 			return (casted >> 1) ^ -(casted & 1);

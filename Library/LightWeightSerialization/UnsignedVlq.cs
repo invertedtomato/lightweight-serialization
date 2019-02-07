@@ -35,6 +35,17 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			}
 		}
 
+		public static UInt64 Decode(Byte[] input) {
+#if DEBUG
+			if (null == input) {
+				throw new ArgumentNullException(nameof(input));
+			}
+#endif
+			using (var stream = new MemoryStream(input)) {
+				return Decode(stream);
+			}
+		}
+
 		public static UInt64 Decode(Stream input) {
 #if DEBUG
 			if (null == input) {

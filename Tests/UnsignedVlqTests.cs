@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using InvertedTomato.Serialization.LightWeightSerialization;
 using Xunit;
 
@@ -41,7 +42,7 @@ namespace Tests {
 
 		[Fact]
 		public void Encode16511() {
-			Assert.Equal(new Byte[] {0b10000000, 0b01111111}, UnsignedVlq.Encode(16511));
+			Assert.Equal(new Byte[] {0b11111111, 0b01111111}, UnsignedVlq.Encode(16511));
 		}
 
 		[Fact]
@@ -61,7 +62,7 @@ namespace Tests {
 
 		[Fact]
 		public void EncodeMax() {
-			Assert.Equal(new Byte[] {0b11111110, 0b11111110, 0b11111110, 0b11111110,0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b00000000,}, UnsignedVlq.Encode(UnsignedVlq.MaxValue));
+			Assert.Equal(new Byte[] {0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b00000000}, UnsignedVlq.Encode(UnsignedVlq.MaxValue));
 		}
 
 		[Fact]
@@ -72,95 +73,111 @@ namespace Tests {
 
 		[Fact]
 		public void Decode0() {
-			Assert.Equal((UInt64) 0, DecompressOne("10000000", 1));
+			Assert.Equal((UInt64) 0, UnsignedVlq.Decode(new Byte[] {0b00000000}));
 		}
+
 
 		[Fact]
 		public void Decode1() {
-			Assert.Equal((UInt64) 1, DecompressOne("10000001", 1));
+			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(new Byte[] {0b00000001}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode2() {
-			Assert.Equal((UInt64) 2, DecompressOne("10000010", 1));
+			Assert.Equal((UInt64) 2, UnsignedVlq.Decode(new Byte[] {0b00000010}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode3() {
-			Assert.Equal((UInt64) 3, DecompressOne("10000011", 1));
+			Assert.Equal((UInt64) 3, UnsignedVlq.Decode(new Byte[] {0b00000011}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode127() {
-			Assert.Equal((UInt64) 127, DecompressOne("11111111", 1));
+			Assert.Equal((UInt64) 127, UnsignedVlq.Decode(new Byte[] {0b01111111}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode128() {
-			Assert.Equal((UInt64) 128, DecompressOne("00000000 10000000", 2));
+			Assert.Equal((UInt64) 128, UnsignedVlq.Decode(new Byte[] {0b10000000,0b00000000}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode129() {
-			Assert.Equal((UInt64) 129, DecompressOne("00000001 10000000", 2));
+			Assert.Equal((UInt64) 129, UnsignedVlq.Decode(new Byte[] {0b10000001,0b00000000}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode16511() {
-			Assert.Equal((UInt64) 16511, DecompressOne("01111111 11111111", 2));
+			Assert.Equal((UInt64) 16511, UnsignedVlq.Decode(new Byte[] {0b11111111,0b01111111}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode16512() {
-			Assert.Equal((UInt64) 16512, DecompressOne("00000000 00000000 10000000", 3));
+			Assert.Equal((UInt64) 16512, UnsignedVlq.Decode(new Byte[] {0b10000000,0b10000000,0b00000000}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode16513() {
-			Assert.Equal((UInt64) 16513, DecompressOne("00000001 00000000 10000000", 3));
+			Assert.Equal((UInt64) 16513, UnsignedVlq.Decode(new Byte[] {0b10000001,0b10000000,0b00000000}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode2113663() {
-			Assert.Equal((UInt64) 2113663, DecompressOne("01111111 01111111 11111111", 3));
+			
+			Assert.Equal((UInt64) 2113663, UnsignedVlq.Decode(new Byte[] {0b11111111,0b11111111,0b01111111}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode2113664() {
-			Assert.Equal((UInt64) 2113664, DecompressOne("00000000 00000000 00000000 10000000", 4));
+			Assert.Equal((UInt64) 2113664, UnsignedVlq.Decode(new Byte[] {0b10000000,0b10000000,0b10000000,0b00000000}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void DecodeMax() {
-			Assert.Equal(VLQCodec.MaxValue, DecompressOne("01111110 01111110 01111110 01111110 01111110 01111110 01111110 01111110 01111110 10000000", 10));
+			Assert.Equal(UnsignedVlq.MaxValue, UnsignedVlq.Decode(new Byte[] {0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b00000000}));
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode1_1_1() {
-			var set = DecompressMany("10000001 10000001 10000001", 3, 3);
-			Assert.Equal(3, set.Length);
-			Assert.Equal((UInt64) 1, set[0]);
-			Assert.Equal((UInt64) 1, set[1]);
-			Assert.Equal((UInt64) 1, set[2]);
+			using(var stream = new MemoryStream(new Byte[]{0b00000001,0b00000001,0b00000001})) {
+				Assert.Equal((UInt64)1, UnsignedVlq.Decode(stream));
+				Assert.Equal((UInt64)1, UnsignedVlq.Decode(stream));
+				Assert.Equal((UInt64)1, UnsignedVlq.Decode(stream));
+				Assert.Throws<EndOfStreamException>(() => {
+					return UnsignedVlq.Decode(stream);
+				});
+			}
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void DecodeInputClipped() {
-			Assert.Throws<EndOfStreamException>(() => {
-				var input = new MemoryStream(BitOperation.ParseToBytes("00000000"));
-				var output = Codec.DecompressUnsigned(input, 1).ToArray();
-			});
+			Assert.Throws<EndOfStreamException>(() => { UnsignedVlq.Decode(new Byte[] {0b10000000}); });
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void DecodeOverflow() {
-			Assert.Throws<OverflowException>(() => { DecompressOne("01111111 01111110 01111110 01111110 01111110 01111110 01111110 01111110 01111110 01111110 10000000", 11); });
+			Assert.Throws<OverflowException>(() => { UnsignedVlq.Decode(new Byte[] {0b11111111, 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b00000000}); });
 		}
 
-		[Fact]
+		[
+			Fact]
 		public void Decode1_X() {
-			var input = new MemoryStream(BitOperation.ParseToBytes("10000001 00000011"));
-			Assert.Equal((UInt64) 1, Codec.DecompressUnsigned(input, 1).Single());
+			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(new Byte[]{0b00000001,0b10000011}));
 		}
 	}
 }
