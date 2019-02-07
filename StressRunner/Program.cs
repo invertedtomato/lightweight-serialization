@@ -28,13 +28,13 @@ namespace StressTest {
 					// Setup output
 					using (var output = new MemoryStream()) {
 						// Encode
-						var length = lw.Encode(bible, output);
+						lw.Encode(bible, output);
 
 						// Rewind buffer
 						output.Seek(0, SeekOrigin.Begin);
 
 						// Decode
-						lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output, length);
+						lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output);
 					}
 				}
 

@@ -40,7 +40,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			
 		}
 
-		public Int32 Encode<T>(T value, Stream buffer) {
+		public void Encode<T>(T value, Stream buffer) {
 #if DEBUG
 			if (null == buffer) {
 				throw new ArgumentNullException(nameof(buffer));
@@ -57,18 +57,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			foreach (var payload in output) {
 				buffer.Write(payload);
 			}
-
-			return output.TotalLength;
 		}
 
-		public T Decode<T>(Stream input, Int32 count) {
+		public T Decode<T>(Stream input) {
 #if DEBUG
 			if (null == input) {
 				throw new ArgumentNullException(nameof(input));
-			}
-
-			if (count < 0) {
-				throw new ArgumentOutOfRangeException(nameof(count), "Must be at least 0.");
 			}
 #endif
 
@@ -76,7 +70,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			var root = GetDecoder<T>();
 
 			// Invoke root serializer
-			return (T) root.DynamicInvoke(input, count);
+			return (T) root.DynamicInvoke(input);
 		}
 
 		public void LoadCoderGenerator(ICoderGenerator generator) {
@@ -151,7 +145,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		public static T Deserialize<T>(Byte[] payload) {
 			using (var buffer = new MemoryStream(payload)) {
 				var lw = new LightWeight();
-				return lw.Decode<T>(buffer, payload.Length);
+				return lw.Decode<T>(buffer);
 			}
 		}
 	}

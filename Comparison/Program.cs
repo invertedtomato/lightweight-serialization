@@ -65,11 +65,11 @@ namespace Comparison {
 			lw.PrepareFor<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(); // Cheating? Not sure.
 			var lwOutput = new MemoryStream();
 			var lwSerialize = Stopwatch.StartNew();
-			var length = lw.Encode(bible, lwOutput);
+			lw.Encode(bible, lwOutput);
 			lwSerialize.Stop();
 			lwOutput.Seek(0, SeekOrigin.Begin);
 			var lwDeserialize = Stopwatch.StartNew();
-			var lwResult = lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput, length);
+			var lwResult = lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(lwOutput);
 			if (lwResult.Count != bible.Count) {
 				Console.WriteLine("LightWeight DISQUALIFIED");
 			}
