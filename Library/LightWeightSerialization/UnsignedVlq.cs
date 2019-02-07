@@ -3,6 +3,7 @@ using System.IO;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	public static class UnsignedVlq {
+		public const UInt64 MinValue = 0;
 		public const UInt64 MaxValue = UInt64.MaxValue - 1;
 
 		private const Byte More = 0b10000000;
@@ -13,7 +14,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		public static Byte[] Encode(UInt64 value) {
 #if DEBUG
 			if (value > MaxValue) {
-				throw new OverflowException("Symbol is larger than maximum supported value. See VLQCodec.MaxValue");
+				throw new OverflowException("Symbol is larger than maximum supported value. See UnsignedVlq.MaxValue.");
 			}
 #endif
 
@@ -72,7 +73,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 #if DEBUG
 				// Check for overflow
 				if (symbol < pre) {
-					throw new OverflowException("Input symbol larger than the supported limit of 64 bits. Probable corrupt input.");
+					throw new OverflowException("Symbol is larger than maximum supported value or is corrupt. See UnsignedVlq.MaxValue.");
 				}
 #endif
 

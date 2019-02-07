@@ -5,34 +5,33 @@ using Xunit;
 namespace Tests {
 	public class SInt16Tests {
 		[Fact]
-		public void Deserialize_SInt16_Max() {
-			Assert.Equal(Int16.MaxValue, LightWeight.Deserialize<Int16>(new Byte[] {255, 127}));
+		public void SInt16SerializeMin() {
+			Assert.Equal(SignedVlq.Encode(Int16.MinValue), LightWeight.Serialize(Int16.MinValue));
 		}
-
+		
 		[Fact]
-		public void Deserialize_SInt16_Min() {
-			Assert.Equal(Int16.MinValue, LightWeight.Deserialize<Int16>(new Byte[] {0, 128}));
+		public void SInt16SerializeZero() {
+			Assert.Equal(SignedVlq.Encode(0), LightWeight.Serialize(0));
 		}
-
+		
 		[Fact]
-		public void Deserialize_SInt16_Zero() {
-			Assert.Equal(0, LightWeight.Deserialize<Int16>(new Byte[] { }));
+		public void SInt16SerializeMax() {
+			Assert.Equal(SignedVlq.Encode(Int16.MaxValue), LightWeight.Serialize(Int16.MaxValue));
 		}
-
-
+		
 		[Fact]
-		public void Serialize_SInt16_Max() {
-			Assert.Equal(new Byte[] {0xff, 0x7f}, LightWeight.Serialize(Int16.MaxValue));
+		public void SInt16DeserializeMin() {
+			Assert.Equal(Int16.MinValue, LightWeight.Deserialize<Int16>(SignedVlq.Encode(Int16.MinValue)));
 		}
-
+		
 		[Fact]
-		public void Serialize_SInt16_Min() {
-			Assert.Equal(new Byte[] {0, 0x80}, LightWeight.Serialize(Int16.MinValue));
+		public void SInt16DeserializeZero() {
+			Assert.Equal((Int16)0, LightWeight.Deserialize<Int16>(SignedVlq.Encode(0)));
 		}
-
+		
 		[Fact]
-		public void Serialize_SInt16_Zero() {
-			Assert.Equal(new Byte[] { }, LightWeight.Serialize(0));
+		public void SInt16DeserializeMax() {
+			Assert.Equal(Int16.MaxValue, LightWeight.Deserialize<Int16>(SignedVlq.Encode(Int16.MaxValue)));
 		}
 	}
 }

@@ -4,34 +4,36 @@ using Xunit;
 
 namespace Tests {
 	public class SInt64Tests {
+		
 		[Fact]
-		public void Deserialize_SInt64_Max() {
-			Assert.Equal(Int64.MaxValue, LightWeight.Deserialize<Int64>(new Byte[] {255, 255, 255, 255, 255, 255, 255, 127}));
+		public void SInt64SerializeMin() {
+			Assert.Equal(SignedVlq.Encode(SignedVlq.MinValue), LightWeight.Serialize(SignedVlq.MinValue));
+		}
+		
+		[Fact]
+		public void SInt64SerializeZero() {
+			Assert.Equal(SignedVlq.Encode(0), LightWeight.Serialize(0));
+		}
+		
+		[Fact]
+		public void SInt64SerializeMax() {
+			Assert.Equal(SignedVlq.Encode(SignedVlq.MaxValue), LightWeight.Serialize(SignedVlq.MaxValue));
+		}
+		
+		[Fact]
+		public void SInt64DeserializeMin() {
+			Assert.Equal(SignedVlq.MinValue, LightWeight.Deserialize<Int64>(SignedVlq.Encode(SignedVlq.MinValue)));
+		}
+		
+		[Fact]
+		public void SInt64DeserializeZero() {
+			Assert.Equal((Int64)0, LightWeight.Deserialize<Int64>(SignedVlq.Encode(0)));
+		}
+		
+		[Fact]
+		public void SInt64DeserializeMax() {
+			Assert.Equal(SignedVlq.MaxValue, LightWeight.Deserialize<Int64>(SignedVlq.Encode(SignedVlq.MaxValue)));
 		}
 
-		[Fact]
-		public void Deserialize_SInt64_Min() {
-			Assert.Equal(Int64.MinValue, LightWeight.Deserialize<Int64>(new Byte[] {0, 0, 0, 0, 0, 0, 0, 128}));
-		}
-
-		[Fact]
-		public void Deserialize_SInt64_Zero() {
-			Assert.Equal(0, LightWeight.Deserialize<Int64>(new Byte[] { }));
-		}
-
-		[Fact]
-		public void Serialize_SInt64_Max() {
-			Assert.Equal(new Byte[] {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, LightWeight.Serialize(Int64.MaxValue));
-		}
-
-		[Fact]
-		public void Serialize_SInt64_Min() {
-			Assert.Equal(new Byte[] {0, 0, 0, 0, 0, 0, 0, 0x80}, LightWeight.Serialize(Int64.MinValue));
-		}
-
-		[Fact]
-		public void Serialize_SInt64_Zero() {
-			Assert.Equal(new Byte[] { }, LightWeight.Serialize(0));
-		}
 	}
 }
