@@ -5,14 +5,14 @@ using System.Reflection;
 using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
-	public class IDictionaryCoderGenerator  : ICoderGenerator{
-		private readonly VLQCodec VLQ = new VLQCodec();
+	public class IDictionaryCoderGenerator : ICoderGenerator {
+		private static readonly Node Null = new Node(Vlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T));
 		}
 
-		public Delegate GenerateEncoder(Type type, Func<Type,Delegate> recurse) {
+		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
 			// Get serializer for sub items
 			var keyEncoder = recurse(type.GenericTypeArguments[0]);
 			var valueEncoder = recurse(type.GenericTypeArguments[1]);
@@ -20,50 +20,58 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			return new Func<IDictionary, Node>(value => {
 				// Handle nulls
 				if (null == value) {
-					return LightWeight.EmptyNode;
+					return Null;
 				}
 
 				// Serialize elements   
-				var childNodes = new NodeSet(value.Count * 2);
+				var output = new Node();
 				var e = value.GetEnumerator();
+				UInt64 count = 0;
 				while (e.MoveNext()) {
-					childNodes.Add((Node) keyEncoder.DynamicInvoke(e.Key));
-					childNodes.Add((Node) valueEncoder.DynamicInvoke(e.Value));
+					output.Append((Node) keyEncoder.DynamicInvoke(e.Key));
+					output.Append((Node) valueEncoder.DynamicInvoke(e.Value));
+					count++;
 				}
 
 				// Encode length
-				var encodedLength = VLQ.CompressUnsigned((UInt64)childNodes.TotalLength).ToArray();
+				output.Prepend(Vlq.Encode(count + 1));
 
-				return Node.NonLeaf(encodedLength, childNodes);
+				return output;
 			});
 		}
 
-		public Delegate GenerateDecoder(Type type, Func<Type,Delegate> recurse) {
+		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
 			// Get deserializer for sub items
 			var keyDecoder = recurse(type.GenericTypeArguments[0]);
 			var valueDecoder = recurse(type.GenericTypeArguments[1]);
 
-			return new Func<Stream, Int32, IDictionary>((buffer, count) => {
+			return new Func<Stream, IDictionary>((input) => {
+				// Read header
+				var header = Vlq.Decode(input);
+
+				if (header == 0) {
+					return null;
+				}
+
+				// Get count
+				var count = (Int32) header - 1;
+
 				// Instantiate dictionary
 				var output = (IDictionary) Activator.CreateInstance(type);
 
 				// Loop through input buffer until depleted
-				while (count > 0) {
+				for (var i = 0; i < count; i++) {
 					// Deserialize key
-					count -= VLQ.DecompressUnsigned(buffer, out var keyLength);
-					var keyValue = keyDecoder.DynamicInvoke(buffer, (Int32)keyLength);
-					count -= (Int32)keyLength;
+					var keyValue = keyDecoder.DynamicInvoke(input);
 
 					// Deserialize value
-					count -= VLQ.DecompressUnsigned(buffer, out var valueLength);
-					var valueValue = valueDecoder.DynamicInvoke(buffer, (Int32)valueLength);
-					count -= (Int32)valueLength;
+					var valueValue = valueDecoder.DynamicInvoke(input);
 
 					// Add to output
 					output[keyValue] = valueValue;
 				}
 
-				return output; // (T)
+				return output;
 			});
 		}
 	}

@@ -7,7 +7,7 @@ using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ClassCoderGenerator : ICoderGenerator {
-		private static readonly Node EmptyNode = new Node(Vlq.Encode(0));
+		private static readonly Node Null = new Node(Vlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support lists or dictionaries
@@ -54,7 +54,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 			// If no properties, shortcut the whole thing and return a blank
 			if (fieldCount == -1) {
-				return new Func<Object, Node>(value => { return EmptyNode; });
+				return new Func<Object, Node>(value => { return Null; });
 			}
 
 			// Check that no indexes have been missed
@@ -67,7 +67,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			return new Func<Object, Node>(value => {
 				// Handle nulls
 				if (null == value) {
-					return EmptyNode; // TODO: Not the correct way to handle nulls. Indistinguishable from empty
+					return Null;
 				}
 
 				var output = new Node();
@@ -90,7 +90,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 				
 				// Encode length
-				output.Prepend(Vlq.Encode((UInt64) output.TotalLength)); // Number of bytes
+				output.Prepend(Vlq.Encode((UInt64) output.TotalLength +1)); // Number of bytes
 				
 				return output;
 			});
@@ -130,7 +130,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 			// If no properties, shortcut the whole thing and return a blank
 			if (fieldCount == -1) {
-				return new Func<Object, Node>(value => { return EmptyNode; });
+				return new Func<Object, Node>(value => { return Null; });
 			}
 
 			// Check that no indexes have been missed
@@ -141,11 +141,20 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			}
 
 			return new Func<Stream, Object>((input) => {
+				
+				// Read the length header
+				var header = (Int32)Vlq.Decode(input);
+
+				// Handle nulls
+				if (header == 0) {
+					return null;
+				}
+
+				// Determine length
+				var length = (Int32) header - 1;
+				
 				// Instantiate output
 				var output = Activator.CreateInstance(type);
-
-				// Read the length header
-				var length = (Int32)Vlq.Decode(input);
 
 				// Isolate bytes for body
 				using (var innerInput = new MemoryStream(input.Read(length))) {  // TODO: Inefficient because it copies a potentially large chunk of memory. Better approach?

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using InvertedTomato.Compression.Integers;
 using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
@@ -17,7 +18,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 		public Delegate GenerateDecoder(Type type, Func<Type,Delegate> recurse){
 			return new Func<Stream, UInt64>((input) => {
-				return (UInt64)Vlq.Decode(input);
+				return Vlq.Decode(input);
 			});
 		}
 	}

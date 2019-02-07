@@ -5,11 +5,11 @@ using System.Reflection;
 using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
-	public class IListCoderGenerator  : ICoderGenerator{
-		private readonly VLQCodec VLQ = new VLQCodec();
+	public class IListCoderGenerator : ICoderGenerator {
+		private static readonly Node Null = new Node(Vlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
-			// This explicitly does not support arrays
+			// This explicitly does not support arrays (otherwise they could get matched with the below check)
 			if (typeof(T).IsArray) {
 				return false;
 			}
@@ -17,51 +17,58 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			return typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T));
 		}
 
-		public Delegate GenerateEncoder(Type type, Func<Type,Delegate> recurse) {
+		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
 			// Get serializer for sub items
 			var valueEncoder = recurse(type.GenericTypeArguments[0]);
 
 			return new Func<IList, Node>(value => {
 				// Handle nulls
 				if (null == value) {
-					return LightWeight.EmptyNode;
+					return Null;
 				}
 
 				// Serialize elements
-				var childNodes = new NodeSet(value.Count);
+				var output = new Node();
 				foreach (var element in value) {
-					childNodes.Add((Node) valueEncoder.DynamicInvoke(element));
+					output.Append((Node) valueEncoder.DynamicInvoke(element));
 				}
 
 				// Encode length
-				var encodedLength = VLQ.CompressUnsigned((UInt64)childNodes.TotalLength).ToArray();
+				output.Prepend(Vlq.Encode((UInt64) value.Count + 1));
 
-				return Node.NonLeaf(encodedLength, childNodes);
+				return output;
 			});
 		}
 
-		public Delegate GenerateDecoder(Type type, Func<Type,Delegate> recurse) {
+		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
 			// Get deserializer for sub items
 			var valueDecoder = recurse(type.GenericTypeArguments[0]);
 
-			return new Func<Stream, Int32, IList>((buffer, count) => {
+			return new Func<Stream, IList>((input) => {
+				// Read header
+				var header = Vlq.Decode(input);
+
+				// Handle nulls
+				if (header == 0) {
+					return null;
+				}
+
+				// Determine length
+				var ount = (Int32) header - 1;
+
 				// Instantiate list
 				var output = (IList) Activator.CreateInstance(type); //typeof(List<>).MakeGenericType(type.GenericTypeArguments)
 
 				// Deserialize until we reach length limit
-				while (count > 0) {
-					// Extract length
-					count -= VLQ.DecompressUnsigned(buffer, out var length);
-
+				for (var i = 0; i < ount; i++) {
 					// Deserialize element
-					var element = valueDecoder.DynamicInvoke(buffer, (Int32) length);
-					count -= (Int32)length;
+					var element = valueDecoder.DynamicInvoke(input);
 
 					// Add to output
 					output.Add(element);
 				}
 
-				return output; // (T)
+				return output;
 			});
 		}
 	}

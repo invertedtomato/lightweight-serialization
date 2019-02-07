@@ -6,7 +6,7 @@ using InvertedTomato.Compression.Integers;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ArrayCoderGenerator : ICoderGenerator {
-		private static readonly Node EmptyNode = new Node(Vlq.Encode(0));
+		private static readonly Node Null = new Node(Vlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T).IsArray;
@@ -19,8 +19,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			return new Func<Array, Node>(value => {
 				// Handle nulls
 				if (null == value) {
-					// TODO: this null handling is incorrect. It's not possible to determine the difference between NULL and Empty at the far end
-					return EmptyNode;
+					return Null;
 				}
 
 				// Serialize elements
@@ -41,13 +40,20 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			var valueDecoder = recurse(type.GetElementType());
 
 			return new Func<Stream, Array>((input) => {
-				var length = Vlq.Decode(input);
+				var header = Vlq.Decode(input);
+
+				if (header == 0) {
+					return null;
+				}
+
+				// Determine length
+				var length = (Int32) header - 1;
 
 				// Instantiate list
 				var container = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(type.GetElementType()));
 
 				// Deserialize until we reach length limit
-				for (UInt64 i = 0; i < length; i++) {
+				for (var i = 0; i < length; i++) {
 					// Deserialize element
 					var element = valueDecoder.DynamicInvoke(input);
 
