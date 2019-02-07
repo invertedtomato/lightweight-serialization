@@ -6,23 +6,23 @@ using Xunit;
 namespace Tests {
 	public class UInt16Tests {
 		[Fact]
-		public void UInt16DeserializeMax() {
-			Assert.Equal(Byte.MaxValue, LightWeight.Deserialize<Byte>("FF".ParseAsHex()));
+		public void UInt16SerializeMin() {
+			Assert.Equal(UnsignedVlq.Encode(UInt16.MinValue), LightWeight.Serialize(UInt16.MinValue));
 		}
-
-		[Fact]
-		public void UInt16DeserializeMin() {
-			Assert.Equal(Byte.MinValue, LightWeight.Deserialize<Byte>("00".ParseAsHex()));
-		}
-
+		
 		[Fact]
 		public void UInt16SerializeMax() {
-			Assert.Equal("FF", LightWeight.Serialize(Byte.MaxValue).ToHexString());
+			Assert.Equal(UnsignedVlq.Encode(UInt16.MaxValue), LightWeight.Serialize(UInt16.MaxValue));
 		}
-
+		
 		[Fact]
-		public void UInt16SerializeMin() {
-			Assert.Equal("00", LightWeight.Serialize(Byte.MinValue).ToHexString());
+		public void UInt16DeserializeMin() {
+			Assert.Equal(UInt16.MinValue, LightWeight.Deserialize<UInt16>(UnsignedVlq.Encode(UInt16.MinValue)));
+		}
+		
+		[Fact]
+		public void UInt16DeserializeMax() {
+			Assert.Equal(UInt16.MaxValue, LightWeight.Deserialize<UInt16>(UnsignedVlq.Encode(UInt16.MaxValue)));
 		}
 	}
 }
