@@ -7,7 +7,7 @@ possible output (even at the expense of functionality). The current design outpe
 
 ## How do I make it go?
 ```c#
-static void Main(String[] args) {
+private static void Main(String[] args) {
     // Create your object
     var input = new POCO {
         Cake = true,
@@ -41,7 +41,7 @@ public class POCO {
 }
 
 public class SubPOCO {
-    [LightWeightProperty(2)] // Skipping indexes like this may waste bits, but does work
+    [LightWeightProperty(0)]
     public Boolean SubValue;
 }
 ```
