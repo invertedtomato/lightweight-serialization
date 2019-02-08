@@ -25,8 +25,8 @@ namespace Tests {
 		}
 
 		[Fact]
-		public void DictionarySerializeInt32String() {
-			var encoded = LightWeight.Serialize(new Dictionary<Int32, String>() {
+		public void DictionarySerializeUInt32String() {
+			var encoded = LightWeight.Serialize(new Dictionary<UInt32, String>() {
 				{1, "a"},
 				{2, "b"}
 			});
@@ -34,22 +34,22 @@ namespace Tests {
 			Assert.Equal(new Byte[] {
 				0x03, // HEADER Count=2
 				0x01, // 1=
-				0x01, (Byte) 'a', // "a"
+				0x02, (Byte) 'a', // "a"
 				0x02, // 2=
-				0x01, (Byte) 'b'
+				0x02, (Byte) 'b' // "b"
 			}, encoded);
 		}
 
 		[Fact]
 		public void DictionarySerializeNested() {
-			var serialized = LightWeight.Serialize(new Dictionary<Int32, Dictionary<Int32, String>> {
+			var serialized = LightWeight.Serialize(new Dictionary<UInt32, Dictionary<UInt32, String>> {
 				{
-					1, new Dictionary<Int32, String> {
+					1, new Dictionary<UInt32, String> {
 						{2, "cake"},
 						{3, "food"}
 					}
 				}, {
-					8, new Dictionary<Int32, String> {
+					2, new Dictionary<UInt32, String> {
 						{4, "fork"},
 						{5, "food"}
 					}
@@ -58,7 +58,7 @@ namespace Tests {
 
 			Assert.Equal(new Byte[] {
 				0x03, // HEADER Count=2
-				0x01, // 1=
+				0x01, // 1=U
 				0x03, //     HEADER Count=2
 				0x02, //     2=
 				0x05, (Byte) 'c', (Byte) 'a', (Byte) 'k', (Byte) 'e', // cake
@@ -93,16 +93,16 @@ namespace Tests {
 		}
 
 		[Fact]
-		public void DictionaryDeserializeInt32String() {
-			var encoded = LightWeight.Deserialize<Dictionary<Int32, String>>(new Byte[] {
+		public void DictionaryDeserializeUInt32String() {
+			var encoded = LightWeight.Deserialize<Dictionary<UInt32, String>>(new Byte[] {
 				0x03, // HEADER Count=2
 				0x01, // 1=
-				0x01, (Byte) 'a', // "a"
+				0x02, (Byte) 'a', // "a"
 				0x02, // 2=
-				0x01, (Byte) 'b'
+				0x02, (Byte) 'b'
 			});
 
-			Assert.Equal(new Dictionary<Int32, String>() {
+			Assert.Equal(new Dictionary<UInt32, String>() {
 				{1, "a"},
 				{2, "b"}
 			}, encoded);
@@ -110,7 +110,7 @@ namespace Tests {
 
 		[Fact]
 		public void DictionaryDeserializeNested() {
-			var decoded = LightWeight.Deserialize<Dictionary<Int32, Dictionary<Int32, String>>>(new Byte[] {
+			var decoded = LightWeight.Deserialize<Dictionary<UInt32, Dictionary<UInt32, String>>>(new Byte[] {
 				0x03, // HEADER Count=2
 				0x01, // 1=
 				0x03, //     HEADER Count=2
@@ -126,14 +126,14 @@ namespace Tests {
 				0x05, (Byte) 'f', (Byte) 'o', (Byte) 'o', (Byte) 'd', // food
 			});
 
-			Assert.Equal(new Dictionary<Int32, Dictionary<Int32, String>> {
+			Assert.Equal(new Dictionary<UInt32, Dictionary<UInt32, String>> {
 				{
-					1, new Dictionary<Int32, String> {
+					1, new Dictionary<UInt32, String> {
 						{2, "cake"},
 						{3, "food"}
 					}
 				}, {
-					8, new Dictionary<Int32, String> {
+					2, new Dictionary<UInt32, String> {
 						{4, "fork"},
 						{5, "food"}
 					}

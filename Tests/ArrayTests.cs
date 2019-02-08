@@ -17,12 +17,12 @@ namespace Tests {
 			var encoded = LightWeight.Serialize(new ArrayNullClass());
 			Assert.Equal(new Byte[] {
 				0x02, // HEADER Length=1
-				0x00 // HEADER NULL
+				0x00 //     HEADER NULL
 			}, encoded);
 		}
 
 		class ArrayNullClass {
-			public Int32[] B { get; set; }
+			[LightWeightProperty(0)] public Int32[] B;
 		}
 
 		[Fact]

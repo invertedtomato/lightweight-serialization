@@ -26,7 +26,7 @@ namespace Tests {
 
 		[Fact]
 		public void ListSerializeInt32() {
-			var encoded = LightWeight.Serialize(new List<Int32> {1, 2, 1000});
+			var encoded = LightWeight.Serialize(new List<UInt32> {1, 2, 1000});
 
 			Assert.Equal(new Byte[] {
 				0x04, // HEADER Count=3
@@ -56,7 +56,7 @@ namespace Tests {
 		
 		[Fact]
 		public void ListDeserializeInt32() {
-			var result = LightWeight.Deserialize<List<Int32>>(new Byte[] {
+			var result = LightWeight.Deserialize<List<UInt32>>(new Byte[] {
 		
 				0x04, // HEADER Count=3
 				0x01, // [0]=1,
@@ -64,7 +64,7 @@ namespace Tests {
 				0xE8, 0x06// [2]=1000
 			});
 
-			Assert.Equal(new List<Int32> {1, 2, 1000}, result);
+			Assert.Equal(new List<UInt32> {1, 2, 1000}, result);
 		}
 	}
 }

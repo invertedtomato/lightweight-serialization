@@ -3,6 +3,7 @@
  - Throw SchemaMismatchException() instead of ProtocolViolation
  - Only use POCO coder for classes decorated with a LightWeight attribute so that it doesn't accentially get used on other things with nil result
  
+ - support class fields as well as properties
  - Test for things that shouldn't be serializable?
  - Add options on field attribute
  - Add datetime support
