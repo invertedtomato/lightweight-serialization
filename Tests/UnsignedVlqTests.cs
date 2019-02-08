@@ -70,87 +70,72 @@ namespace Tests {
 			Assert.Throws<OverflowException>(() => { UnsignedVlq.Encode(UInt64.MaxValue); });
 		}
 
-
 		[Fact]
 		public void Decode0() {
 			Assert.Equal((UInt64) 0, UnsignedVlq.Decode(new Byte[] {0b00000000}));
 		}
-
 
 		[Fact]
 		public void Decode1() {
 			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(new Byte[] {0b00000001}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode2() {
 			Assert.Equal((UInt64) 2, UnsignedVlq.Decode(new Byte[] {0b00000010}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode3() {
 			Assert.Equal((UInt64) 3, UnsignedVlq.Decode(new Byte[] {0b00000011}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode127() {
 			Assert.Equal((UInt64) 127, UnsignedVlq.Decode(new Byte[] {0b01111111}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode128() {
 			Assert.Equal((UInt64) 128, UnsignedVlq.Decode(new Byte[] {0b10000000,0b00000000}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode129() {
 			Assert.Equal((UInt64) 129, UnsignedVlq.Decode(new Byte[] {0b10000001,0b00000000}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode16511() {
 			Assert.Equal((UInt64) 16511, UnsignedVlq.Decode(new Byte[] {0b11111111,0b01111111}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode16512() {
 			Assert.Equal((UInt64) 16512, UnsignedVlq.Decode(new Byte[] {0b10000000,0b10000000,0b00000000}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode16513() {
 			Assert.Equal((UInt64) 16513, UnsignedVlq.Decode(new Byte[] {0b10000001,0b10000000,0b00000000}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode2113663() {
-			
 			Assert.Equal((UInt64) 2113663, UnsignedVlq.Decode(new Byte[] {0b11111111,0b11111111,0b01111111}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode2113664() {
 			Assert.Equal((UInt64) 2113664, UnsignedVlq.Decode(new Byte[] {0b10000000,0b10000000,0b10000000,0b00000000}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void DecodeMax() {
 			Assert.Equal(UnsignedVlq.MaxValue, UnsignedVlq.Decode(new Byte[] {0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b11111110, 0b00000000}));
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode1_1_1() {
 			using(var stream = new MemoryStream(new Byte[]{0b00000001,0b00000001,0b00000001})) {
 				Assert.Equal((UInt64)1, UnsignedVlq.Decode(stream));
@@ -162,20 +147,17 @@ namespace Tests {
 			}
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void DecodeInputClipped() {
 			Assert.Throws<EndOfStreamException>(() => { UnsignedVlq.Decode(new Byte[] {0b10000000}); });
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void DecodeOverflow() {
 			Assert.Throws<OverflowException>(() => { UnsignedVlq.Decode(new Byte[] {0b11111111, 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b11111110 , 0b00000000}); });
 		}
 
-		[
-			Fact]
+		[Fact]
 		public void Decode1_X() {
 			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(new Byte[]{0b00000001,0b10000011}));
 		}

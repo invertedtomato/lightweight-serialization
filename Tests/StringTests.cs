@@ -5,29 +5,35 @@ using Xunit;
 namespace Tests {
 	public class StringTests {
 		[Fact]
-		public void Deserialize_String_1() {
-			Assert.Equal("a", LightWeight.Deserialize<String>(new[] {(Byte) 'a'}));
+		public void StringSerializeNull() {
+			Assert.Equal(UnsignedVlq.Encode(0), LightWeight.Serialize<String>(null));
 		}
 
 		[Fact]
-		public void Deserialize_String_Zero() {
-			Assert.Equal(String.Empty, LightWeight.Deserialize<String>(new Byte[] { })); // TODO: handling of nulls/empties?
+		public void StringSerializeEmpty() {
+			Assert.Equal(UnsignedVlq.Encode(1), LightWeight.Serialize(String.Empty));
 		}
 
 		[Fact]
-		public void Serialize_String_1() {
-			Assert.Equal(new[] {(Byte) 'a'}, LightWeight.Serialize("a"));
-		}
-
-
-		[Fact]
-		public void Serialize_String_Null() {
-			Assert.Equal(new Byte[] { }, LightWeight.Serialize<String>(null));
+		public void StringSerialize1() {
+			Assert.Equal(new[] {(Byte) 0x02, (Byte) 'a'}, LightWeight.Serialize("a"));
 		}
 
 		[Fact]
-		public void Serialize_String_Zero() {
-			Assert.Equal(new Byte[] { }, LightWeight.Serialize(String.Empty));
+		public void StringDeserializeNull() {
+			Assert.Null(LightWeight.Deserialize<String>(UnsignedVlq.Encode(0)));
 		}
+		
+		[Fact]
+		public void StringDeserializeEmpty() {
+			Assert.Equal(String.Empty, LightWeight.Deserialize<String>(UnsignedVlq.Encode(1)));
+		}
+		
+		[Fact]
+		public void StringDeserializeOne() {
+			Assert.Equal("a", LightWeight.Deserialize<String>(new[] {(Byte) 0x02, (Byte) 'a'}));
+		}
+
+		
 	}
 }

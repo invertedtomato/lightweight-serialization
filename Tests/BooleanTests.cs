@@ -7,22 +7,22 @@ namespace Tests {
 	public class BooleanTests {
 		[Fact]
 		public void BooleanDeserializeFalse() {
-			Assert.False(LightWeight.Deserialize<Boolean>("00".ParseAsHex()));
+			Assert.False(LightWeight.Deserialize<Boolean>(UnsignedVlq.Encode(0)));
 		}
 
 		[Fact]
 		public void BooleanDeserializeTrue() {
-			Assert.True(LightWeight.Deserialize<Boolean>("01".ParseAsHex()));
+			Assert.True(LightWeight.Deserialize<Boolean>(UnsignedVlq.Encode(1)));
 		}
 
 		[Fact]
 		public void BooleanSerializeFalse() {
-			Assert.Equal("00", LightWeight.Serialize(false).ToHexString());
+			Assert.Equal(UnsignedVlq.Encode(0), LightWeight.Serialize(false));
 		}
 
 		[Fact]
 		public void BooleanSerializeTrue() {
-			Assert.Equal("01", LightWeight.Serialize(true).ToHexString());
+			Assert.Equal(UnsignedVlq.Encode(1), LightWeight.Serialize(true));
 		}
 	}
 }
