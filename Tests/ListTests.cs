@@ -32,7 +32,7 @@ namespace Tests {
 				0x04, // HEADER Count=3
 				0x01, // [0]=1,
 				0x02, // [1]=2,
-				0x00, 0x00 // [2]=1000
+				0xE8, 0x06 // [2]=1000
 			}, encoded);
 		}
 
@@ -51,7 +51,7 @@ namespace Tests {
 				0x01 // HEADER Count=0
 			});
 
-			Assert.Equal(new List<Int32> {1}, result);
+			Assert.Equal(new List<Int32> {}, result);
 		}
 		
 		[Fact]
@@ -61,7 +61,7 @@ namespace Tests {
 				0x04, // HEADER Count=3
 				0x01, // [0]=1,
 				0x02, // [1]=2,
-				0x00, 0x00 // [2]=1000
+				0xE8, 0x06// [2]=1000
 			});
 
 			Assert.Equal(new List<Int32> {1, 2, 1000}, result);

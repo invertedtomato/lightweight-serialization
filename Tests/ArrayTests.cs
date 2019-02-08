@@ -48,14 +48,14 @@ namespace Tests {
 
 
 		[Fact]
-		public void ArraySerializeSInt16() {
-			var serialized = LightWeight.Serialize(new Int16[] {1, 2, 1000});
+		public void ArraySerializeSInt32() {
+			var serialized = LightWeight.Serialize(new UInt32[] {1, 2, 1000});
 
 			Assert.Equal(new Byte[] {
 				0x04, // HEADER Count=3
 				0x01, // [0]=1
 				0x02, // [1]=2
-				0x00, 0x00 // [2]=1000
+				0xE8, 0x06 // [2]=1000
 			}, serialized);
 		}
 
@@ -105,7 +105,7 @@ namespace Tests {
 		[Fact]
 		public void ArrayDeserializeBoolean() {
 			var result = LightWeight.Deserialize<Boolean[]>(new Byte[] {
-				0x03, // HEADER Count=3
+				0x04, // HEADER Count=3
 				0x01, // [0]=true
 				0x01, // [1]=true
 				0x00 // [2]=false
@@ -115,15 +115,15 @@ namespace Tests {
 		}
 
 		[Fact]
-		public void ArrayDeserializeSInt16() {
-			var result = LightWeight.Deserialize<Int16[]>(new Byte[] {
-				0x03, // HEADER Count=3
+		public void ArrayDeserializeSInt32() {
+			var result = LightWeight.Deserialize<UInt32[]>(new Byte[] {
+				0x04, // HEADER Count=3
 				0x01, // [0]=1
 				0x02, // [1]=2
-				0x00, 0x00 // [3]=??
+				0xE8, 0x06 // [3]=1000
 			});
 
-			Assert.Equal(new Int16[] {1, 2, 1000}, result);
+			Assert.Equal(new UInt32[] {1, 2, 1000}, result);
 		}
 	}
 }

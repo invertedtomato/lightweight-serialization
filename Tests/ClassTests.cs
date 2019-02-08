@@ -78,7 +78,7 @@ namespace Tests {
 				 0x05, // HEADER Length=4
 				 0x01, // [A]=1
 				 0x09, // [B]=9
-				 0x00,0x00, // [C]=1000
+				 0xE8, 0x06, // [C]=1000
 			 }, encoded);
 		 }
 
@@ -99,7 +99,7 @@ namespace Tests {
 				 0x00, //     HEADER Length=5
 				 0x01,  //     [A]=1
 				 0x09, //     [B]=9
-				 0x00, 0x00 // [C]=1000
+				 0xE8, 0x06 // [C]=1000
 			 }, encoded);
 		 }
 		 
@@ -145,7 +145,7 @@ namespace Tests {
 				 0x05, // HEADER Length=4
 				 0x01, // [A]=1
 				 0x09, // [B]=9
-				 0x00,0x00, // [C]=1000
+				 0xE8, 0x06, // [C]=1000
 			 });
 
 			 Assert.Equal(new One {
@@ -163,7 +163,7 @@ namespace Tests {
 				 0x00, //     HEADER Length=5
 				 0x01,  //     [A]=1
 				 0x09, //     [B]=9
-				 0x00, 0x00 // [C]=1000
+				 0xE8, 0x06 // [C]=1000
 			 });
 
 			 Assert.Equal(new Two {
