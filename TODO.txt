@@ -1,6 +1,4 @@
- - Consider how to beat MsgPack! https://github.com/msgpack/msgpack/blob/master/spec.md
-    => Collapse low values into length field based on field data type
- - Throw SchemaMismatchException() instead of ProtocolViolation
+- Document protocol
  - Only use POCO coder for classes decorated with a LightWeight attribute so that it doesn't accentially get used on other things with nil result
  
  - support class fields as well as properties
@@ -12,3 +10,4 @@
  - Add null-able support
  - readme
  - NuGet
+ - caching VLQ encoding
