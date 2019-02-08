@@ -4,7 +4,7 @@ using System.IO;
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	public static class SignedVlq {
 		public const Int64 MinValue = Int64.MinValue + 1;
-		public const Int64 MaxValue = Int64.MaxValue;
+		public const Int64 MaxValue = Int64.MaxValue ;
 
 		public static Byte[] Encode(Int64 value) {
 			return UnsignedVlq.Encode((UInt64) ((value << 1) ^ (value >> 63)));

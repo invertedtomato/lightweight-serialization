@@ -12,7 +12,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		}
 
 		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
-			return new Func<Stream, SByte>(input => { return (SByte) input.ReadByte(); });
+			return new Func<Stream, SByte>(input => {
+				var v=input.ReadByte();
+
+				return (SByte) v;
+			});
 		}
 	}
 }

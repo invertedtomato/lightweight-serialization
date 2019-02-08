@@ -7,7 +7,7 @@ namespace Tests {
 		
 		[Fact]
 		public void SInt8SerializeMin() {
-			Assert.Equal(new Byte[]{0x00}, LightWeight.Serialize(SByte.MinValue));
+			Assert.Equal(new Byte[]{128}, LightWeight.Serialize(SByte.MinValue));
 		}
 		
 		[Fact]
@@ -17,12 +17,12 @@ namespace Tests {
 		
 		[Fact]
 		public void SInt8SerializeMax() {
-			Assert.Equal(new Byte[]{0x00}, LightWeight.Serialize(SByte.MaxValue));
+			Assert.Equal(new Byte[]{127}, LightWeight.Serialize(SByte.MaxValue));
 		}
 		
 		[Fact]
 		public void SInt8DeserializeMin() {
-			Assert.Equal(SByte.MinValue, LightWeight.Deserialize<SByte>(new Byte[]{0x00}));
+			Assert.Equal(SByte.MinValue, LightWeight.Deserialize<SByte>(new Byte[]{128}));
 		}
 		
 		[Fact]
@@ -32,7 +32,7 @@ namespace Tests {
 		
 		[Fact]
 		public void SInt8DeserializeMax() {
-			Assert.Equal(SByte.MaxValue, LightWeight.Deserialize<SByte>(new Byte[]{0x00}));
+			Assert.Equal(SByte.MaxValue, LightWeight.Deserialize<SByte>(new Byte[]{127}));
 		}
 
 	}
