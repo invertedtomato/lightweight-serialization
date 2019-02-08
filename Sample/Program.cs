@@ -38,7 +38,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		}
 
 		public class SubPOCO {
-			[LightWeightProperty(2)] // Skipping indexes like this may waste bits, but does work
+			[LightWeightProperty(0)]
 			public Boolean SubValue;
 		}
 	}

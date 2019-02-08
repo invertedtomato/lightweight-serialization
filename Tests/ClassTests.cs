@@ -5,13 +5,13 @@ using Xunit;
 #pragma warning disable 649
 
 namespace Tests {
-	public class ClassTests {
+	public class ClassTests { // TODO: Test deserializing on mismatched classes - upgrading, downgrading and appropriate exceptions on mismatch
 		class One {
-			[LightWeightProperty(1)] public Int32 A;
+			[LightWeightProperty(1)] public UInt32 A;
 
-			[LightWeightProperty(0)] public Int32 B;
+			[LightWeightProperty(0)] public UInt32 B;
 
-			[LightWeightProperty(2)] public Int32 C;
+			[LightWeightProperty(2)] public UInt32 C;
 		}
 
 		class Two {
@@ -29,9 +29,9 @@ namespace Tests {
 		}
 
 		 class NoIndexs {
-			public Int32 A { get; set; }
-			public Int32 B { get; set; }
-			public Int32 C { get; set; }
+			public UInt32 A { get; set; }
+			public UInt32 B { get; set; }
+			public UInt32 C { get; set; }
 		}
 
 		 [Fact]
@@ -41,7 +41,7 @@ namespace Tests {
 		 
 		 [Fact]
 		 public void ClassSerializeDuplicateIndex() {
-			 Assert.Throws<MissingIndexException>(() => { LightWeight.Serialize(new DuplicateIndex()); });
+			 Assert.Throws<DuplicateIndexException>(() => { LightWeight.Serialize(new DuplicateIndex()); });
 		 }
 
 		 [Fact]
@@ -76,8 +76,8 @@ namespace Tests {
 
 			 Assert.Equal(new Byte[] {
 				 0x05, // HEADER Length=4
-				 0x01, // [A]=1
-				 0x09, // [B]=9
+				 0x09, // [A]=9
+				 0x01, // [B]=1
 				 0xE8, 0x06, // [C]=1000
 			 }, encoded);
 		 }
@@ -94,11 +94,11 @@ namespace Tests {
 			 });
 
 			 Assert.Equal(new Byte[] {
-				 0x07, // HEADER Length=6
-				 0x04, (Byte)'t', (Byte)'e', (Byte)'s', (Byte)'t', // [A]=test
-				 0x00, //     HEADER Length=5
-				 0x01,  //     [A]=1
-				 0x09, //     [B]=9
+				 11, // HEADER Length=10
+				 5, (Byte)'t', (Byte)'e', (Byte)'s', (Byte)'t', // [A]=test
+				 5, //     HEADER Length=4
+				 0x09, //     [A]=9
+				 0x01,  //     [B]=1
 				 0xE8, 0x06 // [C]=1000
 			 }, encoded);
 		 }
@@ -114,7 +114,7 @@ namespace Tests {
 		 }
 		 [Fact]
 		 public void ClassDeserializeDuplicateIndex() {
-			 Assert.Throws<MissingIndexException>(() => { LightWeight.Deserialize<DuplicateIndex>(new Byte[] { }); });
+			 Assert.Throws<DuplicateIndexException>(() => { LightWeight.Deserialize<DuplicateIndex>(new Byte[] { }); });
 		 }
 		 
 		 [Fact]
@@ -126,54 +126,51 @@ namespace Tests {
 			 Assert.Null(decoded);
 		 }
 		 
+		 
 		 [Fact]
 		 public void ClassDeserializeEmpty() {
 			 var encoded = LightWeight.Deserialize<NoIndexs>(new Byte[] {
 				 0x01 // HEADER Length=0
 			 });
 
-			 Assert.Equal(new NoIndexs {
-				 A = 1,
-				 B = 9,
-				 C = 1000
-			 }, encoded);
+			 Assert.Equal((UInt32)0, encoded.A);
+			 Assert.Equal((UInt32)0, encoded.B);
+			 Assert.Equal((UInt32)0, encoded.C);
 		 }
 		 
 		 [Fact]
 		 public void ClassDeserializeBasic() {
 			 var encoded = LightWeight.Deserialize<One>(new Byte[] {
 				 0x05, // HEADER Length=4
-				 0x01, // [A]=1
-				 0x09, // [B]=9
+				 0x09, // [A]=9
+				 0x01, // [B]=1
 				 0xE8, 0x06, // [C]=1000
 			 });
 
-			 Assert.Equal(new One {
-				 A = 1,
-				 B = 9,
-				 C = 1000
-			 }, encoded);
+			 Assert.Equal((UInt32)1, encoded.A);
+			 Assert.Equal((UInt32)1, encoded.A);
+			 Assert.Equal((UInt32)9, encoded.B);
+			 Assert.Equal((UInt32)1000, encoded.C);
 		 }
 
 		 [Fact]
 		 public void ClassDeserializeNested() {
 			 var encoded = LightWeight.Deserialize<Two>(new Byte[] {
-				 0x07, // HEADER Length=6
-				 0x04, (Byte)'t', (Byte)'e', (Byte)'s', (Byte)'t', // [A]=test
-				 0x00, //     HEADER Length=5
-				 0x01,  //     [A]=1
-				 0x09, //     [B]=9
+				 11, // HEADER Length=10
+				 5, (Byte)'t', (Byte)'e', (Byte)'s', (Byte)'t', // [A]=test
+				 5, //     HEADER Length=4
+				 0x09, //     [A]=9
+				 0x01,  //     [B]=1
 				 0xE8, 0x06 // [C]=1000
 			 });
 
-			 Assert.Equal(new Two {
-				 Y = "test",
-				 Z = new One {
-					 A = 1,
-					 B = 9,
-					 C = 1000
-				 }
-			 }, encoded);
+			
+			 
+			 Assert.Equal("test", encoded.Y);
+			 Assert.Equal((UInt32)1, encoded.Z.A);
+			 Assert.Equal((UInt32)1, encoded.Z.A);
+			 Assert.Equal((UInt32)9, encoded.Z.B);
+			 Assert.Equal((UInt32)1000, encoded.Z.C);
 		 }
 		
 	}

@@ -17,6 +17,14 @@ namespace Comparison {
 			MsgPack:   3,905KB   109ms    90ms
 			LW:        3,918KB   182ms   179ms
 		 */
+		/* 8-Feb-19
+		 * FORMAT      SIZE   SERIALIZE    DESERIALIZE
+			JSON:      4,062KB   115ms    91ms
+			ProtoBuff: 4,024KB   207ms    74ms
+			MsgPack:   3,905KB   111ms    52ms
+			LW:        3,886KB   244ms    90ms
+
+		 */
 
 		private static void Main(String[] args) {
 			// Open test data (Book => Chapter => Verse => Content)

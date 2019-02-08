@@ -64,7 +64,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			var root = GetDecoder<T>();
 
 			// Invoke root serializer
-			return (T) root.DynamicInvoke(input);
+			var value = root.DynamicInvoke(input);
+			return (T) value;
 		}
 
 		public void LoadCoderGenerator(ICoderGenerator generator) {

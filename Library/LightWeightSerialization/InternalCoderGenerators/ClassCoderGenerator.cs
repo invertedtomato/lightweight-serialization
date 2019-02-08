@@ -7,6 +7,7 @@ using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ClassCoderGenerator : ICoderGenerator {
 		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
+		private static readonly Node One = new Node(UnsignedVlq.Encode(1));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support lists or dictionaries
@@ -53,7 +54,14 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 			// If no properties, shortcut the whole thing and return a blank
 			if (fieldCount == -1) {
-				return new Func<Object, Node>(value => { return Null; });
+				return new Func<Object, Node>(value => {
+					// Handle nulls
+					if (null == value) {
+						return Null;
+					}
+
+					return One;
+				});
 			}
 
 			// Check that no indexes have been missed
@@ -100,7 +108,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
 			var coders = new Delegate[Byte.MaxValue]; // Index => Encoder/Decoder
 
-			var fieldCount = -1;
+			var maxIndex = -1;
 			foreach (var property in type.GetRuntimeFields()) {
 				// Get property attribute which tells us the properties' index
 				var attribute = (LightWeightPropertyAttribute) property.GetCustomAttribute(typeof(LightWeightPropertyAttribute), false);
@@ -115,8 +123,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Note the max index used
-				if (attribute.Index > fieldCount) {
-					fieldCount = attribute.Index;
+				if (attribute.Index > maxIndex) {
+					maxIndex = attribute.Index;
 				}
 
 				// Find/create encoder
@@ -127,13 +135,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				coders[attribute.Index] = decoder;
 			}
 
-			// If no properties, shortcut the whole thing and return a blank
-			if (fieldCount == -1) {
-				return new Func<Object, Node>(value => { return Null; });
-			}
-
 			// Check that no indexes have been missed
-			for (var i = 0; i < fieldCount; i++) {
+			for (var i = 0; i < maxIndex; i++) {
 				if (null == fields[i]) {
 					throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}.");
 				}
@@ -157,7 +160,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				// Isolate bytes for body
 				using (var innerInput = new MemoryStream(input.Read(length))) {
 					// TODO: Inefficient because it copies a potentially large chunk of memory. Better approach?
-					for (var i = 0; i < fieldCount; i++) {
+					for (var i = 0; i <= maxIndex; i++) {
 						var field = fields[i];
 
 						// Deserialize value
