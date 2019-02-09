@@ -9,7 +9,7 @@ using InvertedTomato.Serialization.LightWeightSerialization;
 using Newtonsoft.Json;
 
 namespace Comparison {
-	internal class inputifinpuProgram {
+	internal class Program {
 		/* 5-Feb-19
 		 *FORMAT      SIZE   SERIALIZE    DESERIALIZE
 			JSON:      4,062KB   143ms    84ms
@@ -17,14 +17,20 @@ namespace Comparison {
 			MsgPack:   3,905KB   109ms    90ms
 			LW:        3,918KB   182ms   179ms
 		 */
-		/* 8-Feb-19
+		/* 8-Feb-19 Improved algorithm (header-less where possible)
 		 * FORMAT      SIZE   SERIALIZE    DESERIALIZE
 			JSON:      4,062KB   115ms    91ms
 			ProtoBuff: 4,024KB   207ms    74ms
 			MsgPack:   3,905KB   111ms    52ms
 			LW:        3,886KB   244ms    90ms
-
 		 */
+		/* 9-Feb-19 Added VLQ encoding cache
+		 FORMAT      SIZE   SERIALIZE    DESERIALIZE
+			JSON:      4,062KB    82ms    50ms
+			ProtoBuff: 4,024KB   240ms    53ms
+			MsgPack:   3,905KB   164ms    59ms
+			LW:        3,886KB   201ms   140ms
+			*/
 
 		private static void Main(String[] args) {
 			// Open test data (Book => Chapter => Verse => Content)
@@ -90,7 +96,6 @@ namespace Comparison {
 			Console.WriteLine("LW:        {0,5:N0}KB {1,5:N0}ms {2,5:N0}ms", lwOutput.Length / 1024, lwSerialize.ElapsedMilliseconds, lwDeserialize.ElapsedMilliseconds);
 
 			Console.WriteLine("Done.");
-			Console.ReadKey(true);
 		}
 	}
 
