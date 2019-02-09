@@ -1,10 +1,14 @@
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class SInt64CoderGenerator : ICoderGenerator {
 		public Boolean IsCompatibleWith<T>() {
-			return typeof(T) == typeof(Int64);
+			var type = typeof(T);
+			var typeInfo = type.GetTypeInfo();
+			return type == typeof(Int64) || // Standard value
+			       (typeInfo.IsEnum && typeInfo.GetEnumUnderlyingType() == typeof(Int64)); // Enum value
 		}
 
 		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	public static class UnsignedVlq {
@@ -11,6 +12,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		private const Int32 PacketSize = 7;
 		private const UInt64 MinPacketValue = UInt64.MaxValue >> (64 - PacketSize);
 
+		private static readonly Byte[][] EncodeCache = new Byte[255][];
+
 		public static Byte[] Encode(UInt64 value) {
 #if DEBUG
 			if (value > MaxValue) {
@@ -18,21 +21,36 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			}
 #endif
 
-			using (var output = new MemoryStream()) {
+			
+			// Lookup cache and return if found
+			if (value < (UInt64) EncodeCache.Length && EncodeCache[value] != null) {
+				return EncodeCache[value];
+			}
+
+			using (var stream = new MemoryStream()) {
+				var symbol = value;
+				
 				// Iterate through input, taking X bits of data each time, aborting when less than X bits left
-				while (value > MinPacketValue) {
+				while (symbol > MinPacketValue) {
 					// Write payload, skipping MSB bit
-					output.WriteByte((Byte) ((value & Mask) | More));
+					stream.WriteByte((Byte) ((symbol & Mask) | More));
 
 					// Offset value for next cycle
-					value >>= PacketSize;
-					value--;
+					symbol >>= PacketSize;
+					symbol--;
 				}
 
 				// Write remaining - marking it as the final byte for symbol
-				output.WriteByte((Byte) (value & Mask));
+				stream.WriteByte((Byte) (symbol & Mask));
 
-				return output.ToArray();
+				var output = stream.ToArray();
+
+				// Populate cache
+				if (value < (UInt64) EncodeCache.Length) {
+					EncodeCache[value] = output;
+				}
+
+				return output;
 			}
 		}
 

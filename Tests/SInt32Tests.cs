@@ -5,6 +5,11 @@ using Xunit;
 
 namespace Tests {
 	public class SInt32Tests {
+		enum TestEnum {
+			A,
+			B
+		}
+		
 		[Fact]
 		public void SInt32SerializeMin() {
 			Assert.Equal(SignedVlq.Encode(Int32.MinValue), LightWeight.Serialize(Int32.MinValue));
@@ -21,6 +26,13 @@ namespace Tests {
 		}
 		
 		[Fact]
+		public void SInt32SerializeEnum() {
+			Assert.Equal(SignedVlq.Encode((Int32)TestEnum.B), LightWeight.Serialize(TestEnum.B));
+		}
+		
+		
+		
+		[Fact]
 		public void SInt32DeserializeMin() {
 			Assert.Equal(Int32.MinValue, LightWeight.Deserialize<Int32>(SignedVlq.Encode(Int32.MinValue)));
 		}
@@ -34,7 +46,13 @@ namespace Tests {
 		public void SInt32DeserializeMax() {
 			Assert.Equal(Int32.MaxValue, LightWeight.Deserialize<Int32>(SignedVlq.Encode(Int32.MaxValue)));
 		}
+		
+		[Fact]
+		public void SInt32DeserializeEnum() {
+			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(SignedVlq.Encode((Int32)TestEnum.B)));
+		}
 
+		
 		[Fact]
 		public void SerializeDeserialize_Int32_Neg1000_1000() {
 			var lw = new LightWeight();

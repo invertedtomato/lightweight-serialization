@@ -42,10 +42,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 #endif
 
 			// Get root serializer
-			var rootSerializer = (Func<T, Node>) GetEncoder<T>();
+			var rootSerializer = GetEncoder<T>();
 
 			// Invoke root serializer
-			var output = rootSerializer(value);
+			var output = (Node)rootSerializer.DynamicInvoke(value);
 
 			// Squash notes tree into stream
 			foreach (var payload in output) {
