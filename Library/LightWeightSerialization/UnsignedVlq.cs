@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -21,37 +22,35 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			}
 #endif
 
-			
 			// Lookup cache and return if found
 			if (value < (UInt64) EncodeCache.Length && EncodeCache[value] != null) {
 				return EncodeCache[value];
 			}
 
-			using (var stream = new MemoryStream()) {
-				var symbol = value;
-				
-				// Iterate through input, taking X bits of data each time, aborting when less than X bits left
-				while (symbol > MinPacketValue) {
-					// Write payload, skipping MSB bit
-					stream.WriteByte((Byte) ((symbol & Mask) | More));
+			var buffer = new List<Byte>();
+			var symbol = value;
 
-					// Offset value for next cycle
-					symbol >>= PacketSize;
-					symbol--;
-				}
+			// Iterate through input, taking X bits of data each time, aborting when less than X bits left
+			while (symbol > MinPacketValue) {
+				// Write payload, skipping MSB bit
+				buffer.Add((Byte) ((symbol & Mask) | More));
 
-				// Write remaining - marking it as the final byte for symbol
-				stream.WriteByte((Byte) (symbol & Mask));
-
-				var output = stream.ToArray();
-
-				// Populate cache
-				if (value < (UInt64) EncodeCache.Length) {
-					EncodeCache[value] = output;
-				}
-
-				return output;
+				// Offset value for next cycle
+				symbol >>= PacketSize;
+				symbol--;
 			}
+
+			// Write remaining - marking it as the final byte for symbol
+			buffer.Add((Byte) (symbol & Mask));
+
+			var output = buffer.ToArray();
+
+			// Populate cache
+			if (value < (UInt64) EncodeCache.Length) {
+				EncodeCache[value] = output;
+			}
+
+			return output;
 		}
 
 		public static UInt64 Decode(Byte[] input) {
