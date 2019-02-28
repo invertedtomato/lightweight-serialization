@@ -45,6 +45,7 @@ namespace StressTest {
 			//  9-Feb-19 5977ms - Added VLQ encoding cache
 			// 28-Feb-19 6023ms - No change
 			// 28-Feb-19 5845ms - Swapped to using ArraySegment during encoding
+			// 28-Feb-19 5128ms - Moved to struct-based nodes
 		}
 	}
 }
