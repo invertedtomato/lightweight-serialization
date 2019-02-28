@@ -5,8 +5,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class BooleanCoderGenerator : ICoderGenerator {
 		private const Byte False = 0x00;
 		private const Byte True = 0x01;
-		private static readonly Node FalseNode = new Node(new[] {False});
-		private static readonly Node TrueNode = new Node(new[] {True});
+		private static readonly Node FalseNode = new Node(new ArraySegment<Byte>(new[] {False}));
+		private static readonly Node TrueNode = new Node(new ArraySegment<Byte>(new[] {True}));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T) == typeof(Boolean);

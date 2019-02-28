@@ -12,10 +12,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		private const Byte Mask = 0b01111111;
 		private const Int32 PacketSize = 7;
 		private const UInt64 MinPacketValue = UInt64.MaxValue >> (64 - PacketSize);
+		private const Int32 MaxBytes = 10;
 
-		private static readonly Byte[][] EncodeCache = new Byte[255][];
+		private static readonly ArraySegment<Byte>[] EncodeCache = new ArraySegment<Byte>[255];
 
-		public static Byte[] Encode(UInt64 value) {
+		public static ArraySegment<Byte> Encode(UInt64 value) {
 #if DEBUG
 			if (value > MaxValue) {
 				throw new OverflowException("Symbol is larger than maximum supported value. See UnsignedVlq.MaxValue.");
@@ -23,17 +24,18 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 #endif
 
 			// Lookup cache and return if found
-			if (value < (UInt64) EncodeCache.Length && EncodeCache[value] != null) {
+			if (value < (UInt64) EncodeCache.Length && EncodeCache[value].Count>0) {
 				return EncodeCache[value];
 			}
 
-			var buffer = new List<Byte>();
+			var position = 0;
+			var buffer = new Byte[MaxBytes];
 			var symbol = value;
 
 			// Iterate through input, taking X bits of data each time, aborting when less than X bits left
 			while (symbol > MinPacketValue) {
 				// Write payload, skipping MSB bit
-				buffer.Add((Byte) ((symbol & Mask) | More));
+				buffer[position++] = (Byte) ((symbol & Mask) | More);
 
 				// Offset value for next cycle
 				symbol >>= PacketSize;
@@ -41,16 +43,15 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			}
 
 			// Write remaining - marking it as the final byte for symbol
-			buffer.Add((Byte) (symbol & Mask));
+			buffer[position++] = (Byte) (symbol & Mask);
 
-			var output = buffer.ToArray();
 
 			// Populate cache
 			if (value < (UInt64) EncodeCache.Length) {
-				EncodeCache[value] = output;
+				return EncodeCache[value] = new ArraySegment<Byte>(buffer,0,position);
+			} else {
+				return new ArraySegment<Byte>(buffer,0,position);
 			}
-
-			return output;
 		}
 
 		public static UInt64 Decode(Byte[] input) {

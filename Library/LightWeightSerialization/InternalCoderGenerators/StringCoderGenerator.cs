@@ -19,7 +19,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Encode value
-				var node = new Node(Encoding.UTF8.GetBytes(value));
+				var node = new Node(new ArraySegment<Byte>(Encoding.UTF8.GetBytes(value)));
 
 				// Prepend length
 				node.Prepend(UnsignedVlq.Encode((UInt64) node.TotalLength + 1)); // Offset by one, since 0 is NULL

@@ -3,18 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
-	public class Node : IEnumerable<Byte[]> {
-		private readonly List<Byte[]> Underlying = new List<Byte[]>();
+	public class Node : IEnumerable<ArraySegment<Byte>> {
+		private readonly List<ArraySegment<Byte>> Underlying = new List<ArraySegment<Byte>>();
 		public Node() { }
 
-		public Node(Byte[] initial) {
+		public Node(ArraySegment<Byte> initial) {
 			Append(initial);
 		}
 
 		public Int32 TotalLength { get; private set; }
 
 
-		public IEnumerator<Byte[]> GetEnumerator() {
+		public IEnumerator<ArraySegment<Byte>> GetEnumerator() {
 			return Underlying.GetEnumerator();
 		}
 
@@ -22,24 +22,24 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			return Underlying.GetEnumerator();
 		}
 
-		public void Append(Byte[] payload) {
-			TotalLength += payload.Length;
+		public void Append(ArraySegment<Byte> payload) {
+			TotalLength += payload.Count;
 			Underlying.Add(payload);
 		}
 
 		public void Append(Node node) {
 			TotalLength += node.TotalLength;
-			Underlying.AddRange(node);
+			Underlying.AddRange(node.Underlying);
 		}
 
-		public void Prepend(Byte[] payload) {
-			TotalLength += payload.Length;
+		public void Prepend(ArraySegment<Byte> payload) {
+			TotalLength += payload.Count;
 			Underlying.Insert(0, payload);
 		}
 
 		public void Prepend(Node node) {
 			TotalLength += node.TotalLength;
-			Underlying.InsertRange(0, node);
+			Underlying.InsertRange(0, node.Underlying);
 		}
 
 

@@ -21,12 +21,12 @@ namespace Tests {
 
 		[Fact]
 		public void StringDeserializeNull() {
-			Assert.Null(LightWeight.Deserialize<String>(UnsignedVlq.Encode(0)));
+			Assert.Null(LightWeight.Deserialize<String>(UnsignedVlq.Encode(0).ToArray()));
 		}
 		
 		[Fact]
 		public void StringDeserializeEmpty() {
-			Assert.Equal(String.Empty, LightWeight.Deserialize<String>(UnsignedVlq.Encode(1)));
+			Assert.Equal(String.Empty, LightWeight.Deserialize<String>(UnsignedVlq.Encode(1).ToArray()));
 		}
 		
 		[Fact]

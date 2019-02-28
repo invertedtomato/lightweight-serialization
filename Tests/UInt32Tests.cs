@@ -28,17 +28,17 @@ namespace Tests {
 		
 		[Fact]
 		public void UInt32DeserializeMin() {
-			Assert.Equal(UInt32.MinValue, LightWeight.Deserialize<UInt32>(UnsignedVlq.Encode(UInt32.MinValue)));
+			Assert.Equal(UInt32.MinValue, LightWeight.Deserialize<UInt32>(UnsignedVlq.Encode(UInt32.MinValue).ToArray()));
 		}
 		
 		[Fact]
 		public void UInt32DeserializeMax() {
-			Assert.Equal(UInt32.MaxValue, LightWeight.Deserialize<UInt32>(UnsignedVlq.Encode(UInt32.MaxValue)));
+			Assert.Equal(UInt32.MaxValue, LightWeight.Deserialize<UInt32>(UnsignedVlq.Encode(UInt32.MaxValue).ToArray()));
 		}
 		
 		[Fact]
 		public void UInt32DeserializeEnum() {
-			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(UnsignedVlq.Encode((UInt32)TestEnum.B)));
+			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(UnsignedVlq.Encode((UInt32)TestEnum.B).ToArray()));
 		}
 	}
 }

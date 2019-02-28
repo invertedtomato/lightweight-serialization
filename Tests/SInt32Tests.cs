@@ -34,22 +34,22 @@ namespace Tests {
 		
 		[Fact]
 		public void SInt32DeserializeMin() {
-			Assert.Equal(Int32.MinValue, LightWeight.Deserialize<Int32>(SignedVlq.Encode(Int32.MinValue)));
+			Assert.Equal(Int32.MinValue, LightWeight.Deserialize<Int32>(SignedVlq.Encode(Int32.MinValue).ToArray()));
 		}
 		
 		[Fact]
 		public void SInt32DeserializeZero() {
-			Assert.Equal((Int32)0, LightWeight.Deserialize<Int32>(SignedVlq.Encode(0)));
+			Assert.Equal((Int32)0, LightWeight.Deserialize<Int32>(SignedVlq.Encode(0).ToArray()));
 		}
 		
 		[Fact]
 		public void SInt32DeserializeMax() {
-			Assert.Equal(Int32.MaxValue, LightWeight.Deserialize<Int32>(SignedVlq.Encode(Int32.MaxValue)));
+			Assert.Equal(Int32.MaxValue, LightWeight.Deserialize<Int32>(SignedVlq.Encode(Int32.MaxValue).ToArray()));
 		}
 		
 		[Fact]
 		public void SInt32DeserializeEnum() {
-			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(SignedVlq.Encode((Int32)TestEnum.B)));
+			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(SignedVlq.Encode((Int32)TestEnum.B).ToArray()));
 		}
 
 		

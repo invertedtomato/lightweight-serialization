@@ -7,7 +7,7 @@ namespace Tests {
 		[Fact]
 		public void SignedVlqNeg100To100() {
 			for (var i = -100; i < 100; i++) {
-				var encoded = SignedVlq.Encode(i);
+				var encoded = SignedVlq.Encode(i).ToArray();
 				var output = SignedVlq.Decode(encoded);
 
 				Assert.Equal(i, output);
@@ -16,19 +16,19 @@ namespace Tests {
 
 		[Fact]
 		public void SignedVlqEncodeDecode16() {
-			var encoded = SignedVlq.Encode(Int16.MaxValue);
+			var encoded = SignedVlq.Encode(Int16.MaxValue).ToArray();
 			Assert.Equal(Int16.MaxValue, SignedVlq.Decode(encoded));
 		}
 
 		[Fact]
 		public void SignedVlqEncodeDecode32() {
-			var encoded = SignedVlq.Encode(Int32.MaxValue);
+			var encoded = SignedVlq.Encode(Int32.MaxValue).ToArray();
 			Assert.Equal(Int32.MaxValue, SignedVlq.Decode(encoded));
 		}
 
 		[Fact]
 		public void SignedVlqEncodeDecodeA() {
-			var encoded = SignedVlq.Encode(SignedVlq.MaxValue - Int32.MaxValue ^ 16);
+			var encoded = SignedVlq.Encode(SignedVlq.MaxValue - Int32.MaxValue ^ 16).ToArray();
 			Assert.Equal(SignedVlq.MaxValue - Int32.MaxValue ^ 16, SignedVlq.Decode(encoded));
 		}
 

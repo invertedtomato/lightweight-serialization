@@ -22,24 +22,24 @@ namespace Tests {
 		
 		[Fact]
 		public void UInt16SerializeEnum() {
-			Assert.Equal(UnsignedVlq.Encode((UInt16)TestEnum.B).ToHexString(), LightWeight.Serialize(TestEnum.B).ToHexString());
+			Assert.Equal(UnsignedVlq.Encode((UInt16)TestEnum.B).ToArray().ToHexString(), LightWeight.Serialize(TestEnum.B).ToHexString());
 		}
 		
 		
 		
 		[Fact]
 		public void UInt16DeserializeMin() {
-			Assert.Equal(UInt16.MinValue, LightWeight.Deserialize<UInt16>(UnsignedVlq.Encode(UInt16.MinValue)));
+			Assert.Equal(UInt16.MinValue, LightWeight.Deserialize<UInt16>(UnsignedVlq.Encode(UInt16.MinValue).ToArray()));
 		}
 		
 		[Fact]
 		public void UInt16DeserializeMax() {
-			Assert.Equal(UInt16.MaxValue, LightWeight.Deserialize<UInt16>(UnsignedVlq.Encode(UInt16.MaxValue)));
+			Assert.Equal(UInt16.MaxValue, LightWeight.Deserialize<UInt16>(UnsignedVlq.Encode(UInt16.MaxValue).ToArray()));
 		}
 		
 		[Fact]
 		public void UInt16DeserializeEnum() {
-			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(UnsignedVlq.Encode((UInt16)TestEnum.B)));
+			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(UnsignedVlq.Encode((UInt16)TestEnum.B).ToArray()));
 		}
 	}
 }

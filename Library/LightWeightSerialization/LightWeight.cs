@@ -49,7 +49,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 			// Squash notes tree into stream
 			foreach (var payload in output) {
-				buffer.Write(payload);
+				buffer.Write(payload.Array, payload.Offset, payload.Count);
 			}
 		}
 

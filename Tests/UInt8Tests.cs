@@ -38,7 +38,7 @@ namespace Tests {
 		
 		[Fact]
 		public void UInt8DeserializeEnum() {
-			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(UnsignedVlq.Encode((Byte)TestEnum.B)));
+			Assert.Equal(TestEnum.B, LightWeight.Deserialize<TestEnum>(UnsignedVlq.Encode((Byte)TestEnum.B).ToArray()));
 		}
 	}
 }

@@ -7,12 +7,12 @@ namespace Tests {
 	public class BooleanTests {
 		[Fact]
 		public void BooleanDeserializeFalse() {
-			Assert.False(LightWeight.Deserialize<Boolean>(UnsignedVlq.Encode(0)));
+			Assert.False(LightWeight.Deserialize<Boolean>(UnsignedVlq.Encode(0).ToArray()));
 		}
 
 		[Fact]
 		public void BooleanDeserializeTrue() {
-			Assert.True(LightWeight.Deserialize<Boolean>(UnsignedVlq.Encode(1)));
+			Assert.True(LightWeight.Deserialize<Boolean>(UnsignedVlq.Encode(1).ToArray()));
 		}
 
 		[Fact]
