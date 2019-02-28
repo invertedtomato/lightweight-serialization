@@ -45,10 +45,11 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			var rootSerializer = GetEncoder<T>();
 
 			// Invoke root serializer
-			var output = (Node)rootSerializer.DynamicInvoke(value);
+			var output = (Node) rootSerializer.DynamicInvoke(value);
 
 			// Squash notes tree into stream
-			foreach (var payload in output) {
+			for (var i = output.Offset; i < output.Offset + output.Count; i++) {
+				var payload = output.Underlying[i];
 				buffer.Write(payload.Array, payload.Offset, payload.Count);
 			}
 		}

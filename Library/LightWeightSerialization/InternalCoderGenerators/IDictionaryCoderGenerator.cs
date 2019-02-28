@@ -33,7 +33,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Encode length
-				output.Prepend(UnsignedVlq.Encode(count + 1));
+				output.SetFirst(UnsignedVlq.Encode(count + 1));
 
 				return output;
 			});

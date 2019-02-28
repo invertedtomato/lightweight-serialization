@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 namespace StressTest {
 	internal class Program {
 		private static void Main(String[] args) {
-			var runs = 3;
+			var runs = 5;
 			var iterations = 25;
 
 			// Open test data (Book => Chapter => Verse => Content)
@@ -46,6 +46,7 @@ namespace StressTest {
 			// 28-Feb-19 6023ms - No change
 			// 28-Feb-19 5845ms - Swapped to using ArraySegment during encoding
 			// 28-Feb-19 5128ms - Moved to struct-based nodes
+			//  1-Mar-19 5015ms - Remove list in Node
 		}
 	}
 }

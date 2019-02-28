@@ -1,63 +1,82 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
-	public struct Node : IEnumerable<ArraySegment<Byte>> {
-		private List<ArraySegment<Byte>> Underlying;
+	public struct Node {
+		private const Int32 InitialSize = 8;
+
+		public ArraySegment<Byte>[] Underlying;
+		public Int32 Offset { get; private set; }
+		public Int32 Count { get; private set; }
 
 		public Int32 TotalLength { get; private set; }
 
+		private Int32 Available {
+			get { return Underlying.Length - Offset - Count; }
+		}
 
-		public Node(ArraySegment<Byte> payload) {
+		public Node(Int32 initialSize) {
 			TotalLength = 0;
-			Underlying = new List<ArraySegment<Byte>>();
-			Append(payload);
-		}
-		
-		public IEnumerator<ArraySegment<Byte>> GetEnumerator() {
-			return Underlying.GetEnumerator();
+			Offset = 1;
+			Count = 0;
+			Underlying = new ArraySegment<Byte>[initialSize];
 		}
 
-		IEnumerator IEnumerable.GetEnumerator() {
-			return Underlying.GetEnumerator();
+		public Node(params ArraySegment<Byte>[] payloads) {
+			TotalLength = payloads.Sum(a => a.Count);
+			Offset = 0;
+			Count = payloads.Length;
+			Underlying = payloads;
 		}
 
 		public void Append(ArraySegment<Byte> payload) {
 			if (null == Underlying) {
-				Underlying = new List<ArraySegment<Byte>>();
+				Offset = 1;
+				Underlying = new ArraySegment<Byte>[InitialSize];
 			}
+
+			if (Available < 1) {
+				Array.Resize(ref Underlying, Underlying.Length * 2);
+			}
+
 			TotalLength += payload.Count;
-			Underlying.Add(payload);
+			Underlying[Offset + Count] = payload;
+			Count++;
 		}
 
 		public void Append(Node node) {
 			if (null == Underlying) {
-				Underlying = new List<ArraySegment<Byte>>();
+				Offset = 1;
+				Underlying = new ArraySegment<Byte>[InitialSize];
 			}
+
+			if (Available < node.Count) {
+				Array.Resize(ref Underlying, Math.Max(Offset + Count + node.Count, Underlying.Length * 2));
+			}
+
+			Array.Copy(node.Underlying, node.Offset, Underlying, Offset + Count, node.Count);
+			Count += node.Count;
 			TotalLength += node.TotalLength;
-			Underlying.AddRange(node.Underlying);
 		}
 
-		public void Prepend(ArraySegment<Byte> payload) {
+		public void SetFirst(ArraySegment<Byte> payload) {
 			if (null == Underlying) {
-				Underlying = new List<ArraySegment<Byte>>();
+				Offset = 1;
+				Underlying = new ArraySegment<Byte>[InitialSize];
 			}
-			TotalLength += payload.Count;
-			Underlying.Insert(0, payload);
-		}
 
-		public void Prepend(Node node) {
-			if (null == Underlying) {
-				Underlying = new List<ArraySegment<Byte>>();
+			TotalLength += payload.Count - Underlying[0].Count;
+			Underlying[0] = payload;
+			if (Offset == 1) {
+				Offset = 0;
+				Count++;
 			}
-			TotalLength += node.TotalLength;
-			Underlying.InsertRange(0, node.Underlying);
 		}
-
 
 		public override String ToString() {
-			return $"count={Underlying.Count},length={TotalLength}";
+			return $"count={Underlying.Length},length={TotalLength}";
 		}
 	}
 }

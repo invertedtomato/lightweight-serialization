@@ -28,7 +28,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Encode length
-				output.Prepend(UnsignedVlq.Encode((UInt64) value.Length+1)); // Number of elements, not number of bytes
+				output.SetFirst(UnsignedVlq.Encode((UInt64) value.Length+1)); // Number of elements, not number of bytes
 
 				return output;
 			});
