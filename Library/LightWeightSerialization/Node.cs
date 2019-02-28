@@ -76,7 +76,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		}
 
 		public override String ToString() {
-			return $"count={Underlying.Length},length={TotalLength}";
+			return $"count={Count},length={TotalLength}";
 		}
 	}
 }
