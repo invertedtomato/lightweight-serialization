@@ -139,7 +139,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		///     Deserialize an object from a byte array.
 		/// </summary>
 		public static T Deserialize<T>(Byte[] payload) {
-			using (var buffer = new MemoryStream(payload)) {
+			using (var buffer = new MemoryStream(payload, false)) {
 				var lw = new LightWeight();
 				return lw.Decode<T>(buffer);
 			}

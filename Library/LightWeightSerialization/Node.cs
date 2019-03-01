@@ -17,6 +17,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			get { return Underlying.Length - Offset - Count; }
 		}
 
+		/// <summary>
+		/// Initialize to a given size, leaving an additional element free at the start for a header.
+		/// </summary>
 		public Node(Int32 initialSize) {
 			TotalLength = 0;
 			Offset = 1;
@@ -24,6 +27,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			Underlying = new ArraySegment<Byte>[initialSize];
 		}
 
+		/// <summary>
+		/// Initialize with a given set of payloads, leaving no room for a header.
+		/// </summary>
+		/// <param name="payloads"></param>
 		public Node(params ArraySegment<Byte>[] payloads) {
 			TotalLength = payloads.Sum(a => a.Count);
 			Offset = 0;
