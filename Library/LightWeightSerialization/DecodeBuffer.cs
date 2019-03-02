@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
 	public class DecodeBuffer {
@@ -12,6 +13,12 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			Count = count;
 		}
 
+		public DecodeBuffer(Byte[] underlying) {
+			Underlying = underlying;
+			Offset = 0;
+			Count = underlying.Length;
+		}
+		
 		public DecodeBuffer(ArraySegment<Byte> underlying) {
 			Underlying = underlying.Array;
 			Offset = underlying.Offset;
@@ -20,7 +27,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 		public Int32 GetIncrementOffset(Int32 count) {
 			if (count > Count) {
-				throw new ArgumentOutOfRangeException(nameof(count));
+				throw new EndOfStreamException(nameof(count));
 			}
 
 			var offset = Offset;

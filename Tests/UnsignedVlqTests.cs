@@ -137,7 +137,7 @@ namespace Tests {
 
 		[Fact]
 		public void Decode1_1_1() {
-			var stream = new DecodeBuffer(new Byte[] {0b00000001, 0b00000001, 0b00000001}, 0, 3);
+			var stream = new DecodeBuffer(new Byte[] {0b00000001, 0b00000001, 0b00000001});
 			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(stream));
 			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(stream));
 			Assert.Equal((UInt64) 1, UnsignedVlq.Decode(stream));
