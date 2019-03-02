@@ -6,8 +6,8 @@ using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ClassCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
-		private static readonly Node One = new Node(UnsignedVlq.Encode(1));
+		private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
+		private static readonly EncodeBuffer One = new EncodeBuffer(UnsignedVlq.Encode(1));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support lists or dictionaries
@@ -54,7 +54,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 
 			// If no properties, shortcut the whole thing and return a blank
 			if (fieldCount == -1) {
-				return new Func<Object, Node>(value => {
+				return new Func<Object, EncodeBuffer>(value => {
 					// Handle nulls
 					if (null == value) {
 						return Null;
@@ -71,13 +71,13 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 			}
 
-			return new Func<Object, Node>(value => {
+			return new Func<Object, EncodeBuffer>(value => {
 				// Handle nulls
 				if (null == value) {
 					return Null;
 				}
 
-				var output = new Node();
+				var output = new EncodeBuffer();
 
 				for (Byte i = 0; i <= fieldCount; i++) {
 					var field = fields[i];
@@ -93,7 +93,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 					var v = field.GetValue(value);
 
 					// Add to output
-					output.Append((Node) encoder.DynamicInvoke(v));
+					output.Append((EncodeBuffer) encoder.DynamicInvoke(v));
 				}
 
 				// Encode length
@@ -142,7 +142,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 			}
 
-			return new Func<Stream, Object>(input => {
+			return new Func<DecodeBuffer, Object>(input => {
 				// Read the length header
 				var header = (Int32) UnsignedVlq.Decode(input);
 
@@ -157,18 +157,18 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				// Instantiate output
 				var output = Activator.CreateInstance(type);
 
+				// Extract an inner buffer so that if fields are added to the class in the future we ignore them, being backwards compatible
+				var innerInput = input.Extract(length);
+
 				// Isolate bytes for body
-				using (var innerInput = new MemoryStream(input.Read(length))) {
-					// TODO: Inefficient because it copies a potentially large chunk of memory. Better approach?
-					for (var i = 0; i <= maxIndex; i++) {
-						var field = fields[i];
+				for (var i = 0; i <= maxIndex; i++) {
+					var field = fields[i];
 
-						// Deserialize value
-						var value = coders[i].DynamicInvoke(innerInput);
+					// Deserialize value
+					var value = coders[i].DynamicInvoke(innerInput);
 
-						// Set it on property
-						field.SetValue(output, value);
-					}
+					// Set it on property
+					field.SetValue(output, value);
 				}
 
 				return output;

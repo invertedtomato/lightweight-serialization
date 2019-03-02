@@ -34,27 +34,33 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			LoadCoderGenerator(new StringCoderGenerator());
 		}
 
-		public void Encode<T>(T value, Stream buffer) {
-#if DEBUG
-			if (null == buffer) {
-				throw new ArgumentNullException(nameof(buffer));
-			}
-#endif
-
+		public Byte[] Encode<T>(T value) {
 			// Get root serializer
 			var rootSerializer = GetEncoder<T>();
 
 			// Invoke root serializer
-			var output = (Node) rootSerializer.DynamicInvoke(value);
+			var output = (EncodeBuffer) rootSerializer.DynamicInvoke(value);
+
+			// Allocate output buffer
+			var buffer = new Byte[output.TotalLength];
+			var offset = 0;
 
 			// Squash notes tree into stream
 			for (var i = output.Offset; i < output.Offset + output.Count; i++) {
 				var payload = output.Underlying[i];
-				buffer.Write(payload.Array, payload.Offset, payload.Count);
+				Buffer.BlockCopy(payload.Array, payload.Offset, buffer, offset, payload.Count);
+				offset += payload.Count;
 			}
+
+			return buffer;
 		}
 
-		public T Decode<T>(Stream input) {
+		public T Decode<T>(Byte[] input) {
+			return Decode<T>(new ArraySegment<Byte>(input));
+		}
+
+
+		public T Decode<T>(ArraySegment<Byte> input) {
 #if DEBUG
 			if (null == input) {
 				throw new ArgumentNullException(nameof(input));
@@ -65,7 +71,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			var root = GetDecoder<T>();
 
 			// Invoke root serializer
-			var value = root.DynamicInvoke(input);
+			var value = root.DynamicInvoke(new DecodeBuffer(input));
 			return (T) value;
 		}
 
@@ -128,21 +134,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		///     Serialize an object into a byte array.
 		/// </summary>
 		public static Byte[] Serialize<T>(T value) {
-			using (var buffer = new MemoryStream()) {
-				var lw = new LightWeight();
-				lw.Encode(value, buffer);
-				return buffer.ToArray();
-			}
+			var lw = new LightWeight();
+			return lw.Encode(value);
 		}
 
 		/// <summary>
 		///     Deserialize an object from a byte array.
 		/// </summary>
 		public static T Deserialize<T>(Byte[] payload) {
-			using (var buffer = new MemoryStream(payload, false)) {
-				var lw = new LightWeight();
-				return lw.Decode<T>(buffer);
-			}
+			var lw = new LightWeight();
+			return lw.Decode<T>(payload);
 		}
 	}
 }

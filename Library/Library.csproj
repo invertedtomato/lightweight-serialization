@@ -8,16 +8,14 @@
     <Title>InvertedTomato.LightWeightSerialization</Title>
     <Authors>Inverted Tomato</Authors>
     <Description>Extremely compact serialization for when size matters more than functionality. Produces output smaller than JSON, ProtoBuf and MsgPack. </Description>
-    <PackageVersion>0.1.6</PackageVersion>
+    <PackageVersion>0.2.0</PackageVersion>
     <PackageProjectUrl>https://github.com/invertedtomato/lightweight-serialization</PackageProjectUrl>
     <PackageLicenseUrl>https://raw.githubusercontent.com/invertedtomato/lightweight-serialization/master/LICENSE</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/invertedtomato/lightweight-serialization</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>serialization,serialisation,compact,protobuf,msgpack</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReleaseNotes> - Added support for enums.
- - Resolved issue decoding very large signed integers. Values were being corrupted.
-  - Significantly improved integer encoding speed by caching low VLQ values.</PackageReleaseNotes>
+    <PackageReleaseNotes>Significantly improved performance. Interface changed to Byte[] buffers.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class IDictionaryCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
+		private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(IDictionary).GetTypeInfo().IsAssignableFrom(typeof(T));
@@ -16,19 +16,19 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			var keyEncoder = recurse(type.GenericTypeArguments[0]);
 			var valueEncoder = recurse(type.GenericTypeArguments[1]);
 
-			return new Func<IDictionary, Node>(value => {
+			return new Func<IDictionary, EncodeBuffer>(value => {
 				// Handle nulls
 				if (null == value) {
 					return Null;
 				}
 
 				// Serialize elements   
-				var output = new Node();
+				var output = new EncodeBuffer();
 				var e = value.GetEnumerator();
 				UInt64 count = 0;
 				while (e.MoveNext()) {
-					output.Append((Node) keyEncoder.DynamicInvoke(e.Key));
-					output.Append((Node) valueEncoder.DynamicInvoke(e.Value));
+					output.Append((EncodeBuffer) keyEncoder.DynamicInvoke(e.Key));
+					output.Append((EncodeBuffer) valueEncoder.DynamicInvoke(e.Value));
 					count++;
 				}
 
@@ -44,7 +44,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			var keyDecoder = recurse(type.GenericTypeArguments[0]);
 			var valueDecoder = recurse(type.GenericTypeArguments[1]);
 
-			return new Func<Stream, IDictionary>(input => {
+			return new Func<DecodeBuffer, IDictionary>(input => {
 				// Read header
 				var header = UnsignedVlq.Decode(input);
 

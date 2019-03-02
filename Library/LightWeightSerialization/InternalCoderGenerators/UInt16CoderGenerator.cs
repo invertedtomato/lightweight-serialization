@@ -12,13 +12,15 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 		}
 
 		public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse) {
-			return new Func<UInt16, Node>(value => {
-				return new Node(UnsignedVlq.Encode(value));
+			return new Func<UInt16, EncodeBuffer>(value => {
+				return new EncodeBuffer(UnsignedVlq.Encode(value));
 			});
 		}
 
 		public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse) {
-			return new Func<Stream, UInt16>(input => { return (UInt16) UnsignedVlq.Decode(input); });
+			 return new Func<DecodeBuffer,  UInt16>(input => {
+				 return (UInt16) UnsignedVlq.Decode( input);
+			 });
 		}
 	}
 }

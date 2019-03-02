@@ -5,7 +5,7 @@ using System.IO;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ArrayCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
+		private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			return typeof(T).IsArray;
@@ -15,16 +15,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get serializer for sub items
 			var valueEncoder = recurse(type.GetElementType());
 
-			return new Func<Array, Node>(value => {
+			return new Func<Array, EncodeBuffer>(value => {
 				// Handle nulls
 				if (null == value) {
 					return Null;
 				}
 
 				// Serialize elements
-				var output = new Node();
+				var output = new EncodeBuffer();
 				foreach (var subValue in value) {
-					output.Append((Node) valueEncoder.DynamicInvoke(subValue));
+					output.Append((EncodeBuffer) valueEncoder.DynamicInvoke(subValue));
 				}
 
 				// Encode length
@@ -38,7 +38,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get deserializer for sub items
 			var valueDecoder = recurse(type.GetElementType());
 
-			return new Func<Stream, Array>(input => {
+			return new Func<DecodeBuffer, Array>(input => {
 				var header = UnsignedVlq.Decode(input);
 
 				if (header == 0) {

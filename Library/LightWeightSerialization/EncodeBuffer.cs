@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
-	public struct Node {
+	public struct EncodeBuffer {
 		private const Int32 InitialSize = 8;
 
 		public ArraySegment<Byte>[] Underlying;
@@ -20,7 +20,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		/// <summary>
 		/// Initialize to a given size, leaving an additional element free at the start for a header.
 		/// </summary>
-		public Node(Int32 initialSize) {
+		public EncodeBuffer(Int32 initialSize) {
 			TotalLength = 0;
 			Offset = 1;
 			Count = 0;
@@ -31,7 +31,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		/// Initialize with a given set of payloads, leaving no room for a header.
 		/// </summary>
 		/// <param name="payloads"></param>
-		public Node(params ArraySegment<Byte>[] payloads) {
+		public EncodeBuffer(params ArraySegment<Byte>[] payloads) {
 			TotalLength = payloads.Sum(a => a.Count);
 			Offset = 0;
 			Count = payloads.Length;
@@ -53,19 +53,19 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			Count++;
 		}
 
-		public void Append(Node node) {
+		public void Append(EncodeBuffer buffer) {
 			if (null == Underlying) {
 				Offset = 1;
 				Underlying = new ArraySegment<Byte>[InitialSize];
 			}
 
-			if (Available < node.Count) {
-				Array.Resize(ref Underlying, Math.Max(Offset + Count + node.Count, Underlying.Length * 2));
+			if (Available < buffer.Count) {
+				Array.Resize(ref Underlying, Math.Max(Offset + Count + buffer.Count, Underlying.Length * 2));
 			}
 
-			Array.Copy(node.Underlying, node.Offset, Underlying, Offset + Count, node.Count);
-			Count += node.Count;
-			TotalLength += node.TotalLength;
+			Array.Copy(buffer.Underlying, buffer.Offset, Underlying, Offset + Count, buffer.Count);
+			Count += buffer.Count;
+			TotalLength += buffer.TotalLength;
 		}
 
 		public void SetFirst(ArraySegment<Byte> payload) {

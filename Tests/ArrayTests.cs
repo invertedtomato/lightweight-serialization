@@ -22,7 +22,7 @@ namespace Tests {
 		}
 
 		class ArrayNullClass {
-			[LightWeightProperty(0)] public Int32[] B;
+			[LightWeightProperty(0)] public Int32[] B = null;
 		}
 
 		[Fact]
@@ -80,7 +80,7 @@ namespace Tests {
 				0x00 // HEADER NULL
 			});
 
-			Assert.Null( result);
+			Assert.Null(result);
 		}
 
 		[Fact]
@@ -89,8 +89,8 @@ namespace Tests {
 				0x02, // HEADER Length=1
 				0x00 // HEADER NULL
 			});
-			
-			Assert.Null( result.B);
+
+			Assert.Null(result.B);
 		}
 
 		[Fact]
@@ -98,8 +98,8 @@ namespace Tests {
 			var result = LightWeight.Deserialize<Int32[]>(new Byte[] {
 				0x01 // HEADER Count=0
 			});
-			
-			Assert.Equal(new Int32[]{}, result);
+
+			Assert.Equal(new Int32[] { }, result);
 		}
 
 		[Fact]

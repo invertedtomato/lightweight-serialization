@@ -24,7 +24,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 #endif
 
 			// Lookup cache and return if found
-			if (value < (UInt64) EncodeCache.Length && EncodeCache[value].Count>0) {
+			if (value < (UInt64) EncodeCache.Length && EncodeCache[value].Count > 0) {
 				return EncodeCache[value];
 			}
 
@@ -48,9 +48,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 
 			// Populate cache
 			if (value < (UInt64) EncodeCache.Length) {
-				return EncodeCache[value] = new ArraySegment<Byte>(buffer,0,position);
+				return EncodeCache[value] = new ArraySegment<Byte>(buffer, 0, position);
 			} else {
-				return new ArraySegment<Byte>(buffer,0,position);
+				return new ArraySegment<Byte>(buffer, 0, position);
 			}
 		}
 
@@ -60,17 +60,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 				throw new ArgumentNullException(nameof(input));
 			}
 #endif
-			using (var stream = new MemoryStream(input)) {
-				return Decode(stream);
-			}
+			return Decode(new DecodeBuffer(input, 0, input.Length));
 		}
 
-		public static UInt64 Decode(Stream input) {
+		public static UInt64 Decode(DecodeBuffer input) {
 #if DEBUG
 			if (null == input) {
 				throw new ArgumentNullException(nameof(input));
 			}
 #endif
+
 
 			// Setup symbol
 			UInt64 symbol = 0;
@@ -79,9 +78,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			Int32 b;
 			do {
 				// Read byte
-				if ((b = input.ReadByte()) == -1) {
-					throw new EndOfStreamException("Input ends with a partial symbol. More bytes required to decode.");
-				}
+				b = input.ReadByte();
 
 				// Add input bits to output
 				var chunk = (UInt64) (b & Mask);

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class IListCoderGenerator : ICoderGenerator {
-		private static readonly Node Null = new Node(UnsignedVlq.Encode(0));
+		private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {
 			// This explicitly does not support arrays (otherwise they could get matched with the below check)
@@ -20,16 +20,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get serializer for sub items
 			var valueEncoder = recurse(type.GenericTypeArguments[0]);
 
-			return new Func<IList, Node>(value => {
+			return new Func<IList, EncodeBuffer>(value => {
 				// Handle nulls
 				if (null == value) {
 					return Null;
 				}
 
 				// Serialize elements
-				var output = new Node();
+				var output = new EncodeBuffer();
 				foreach (var element in value) {
-					output.Append((Node) valueEncoder.DynamicInvoke(element));
+					output.Append((EncodeBuffer) valueEncoder.DynamicInvoke(element));
 				}
 
 				// Encode length
@@ -43,7 +43,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Get deserializer for sub items
 			var valueDecoder = recurse(type.GenericTypeArguments[0]);
 
-			return new Func<Stream, IList>(input => {
+			return new Func<DecodeBuffer, IList>(input => {
 				// Read header
 				var header = UnsignedVlq.Decode(input);
 
@@ -53,13 +53,13 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 				}
 
 				// Determine length
-				var ount = (Int32) header - 1;
+				var count = (Int32) header - 1;
 
 				// Instantiate list
 				var output = (IList) Activator.CreateInstance(type); //typeof(List<>).MakeGenericType(type.GenericTypeArguments)
 
 				// Deserialize until we reach length limit
-				for (var i = 0; i < ount; i++) {
+				for (var i = 0; i < count; i++) {
 					// Deserialize element
 					var element = valueDecoder.DynamicInvoke(input);
 

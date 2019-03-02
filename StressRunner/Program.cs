@@ -23,17 +23,11 @@ namespace StressTest {
 				var lw = new LightWeight();
 
 				for (var itr = 0; itr < 25; itr++) {
-					// Setup output
-					using (var output = new MemoryStream()) {
-						// Encode
-						lw.Encode(bible, output);
+					// Encode
+					var output = lw.Encode(bible);
 
-						// Rewind buffer
-						output.Seek(0, SeekOrigin.Begin);
-
-						// Decode
-						lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output);
-					}
+					// Decode
+					lw.Decode<Dictionary<String, Dictionary<Int32, Dictionary<Int32, String>>>>(output);
 				}
 
 				Console.WriteLine($"{iterations} iterations in {timer.ElapsedMilliseconds}ms");
@@ -47,6 +41,8 @@ namespace StressTest {
 			// 28-Feb-19 5845ms - Swapped to using ArraySegment during encoding
 			// 28-Feb-19 5128ms - Moved to struct-based nodes
 			//  1-Mar-19 5015ms - Remove list in Node
+			//  2-Mar-19 4827ms - Removed Stream for decoding, saving a heap of copying
+			//  2-Mar-19 4725ms - Swapped from using Stream for encoding, saving some array resizing.
 		}
 	}
 }
