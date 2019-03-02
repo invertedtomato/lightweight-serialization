@@ -32,6 +32,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 			LoadCoderGenerator(new UInt32CoderGenerator());
 			LoadCoderGenerator(new UInt64CoderGenerator());
 			LoadCoderGenerator(new StringCoderGenerator());
+			LoadCoderGenerator(new SingleCoderGenerator());
+			LoadCoderGenerator(new DoubleCoderGenerator());
 		}
 
 		public Byte[] Encode<T>(T value) {
