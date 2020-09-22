@@ -1,14 +1,12 @@
 # LightWeight
 ## Introduction
-_LightWeight is a work in progress and is by no means stable currently._
-
-LightWeight takes a different approach to serialization than most mainstream algorithms. It focuses on producing the smallest
-possible output (even at the expense of functionality). The current design outperforms JSON and ProtoBuf.
+LightWeight is a fresh take on serialization. By including only the bare minimum bytes it produces outputs smaller than ProtoBuff and MsgPack. This 
+small output size is achieved using similar CPU overheads.
 
 ## How do I make it go?
 ```c#
 private static void Main(String[] args) {
-    // Create your object
+    // Figure out what you want to serialize
     var input = new POCO {
         Cake = true,
         Vegetable = false,
@@ -17,13 +15,13 @@ private static void Main(String[] args) {
         }
     };
 
-    // Serialize like you normally would
+    // Serialize it!
     var payload = LightWeight.Serialize(input);
 
-    // Use the outputted byte array
+    // Store or transmit the binary output
     Console.WriteLine(BitConverter.ToString(payload));
 
-    // Deserialize like you normally would
+    // Deserialise it
     var output = LightWeight.Deserialize<POCO>(payload);
 }
 
@@ -36,7 +34,7 @@ public class POCO {
     [LightWeightProperty(2)] // The index is used to identify the field, not the name
     public SubPOCO Sub;
 
-    [LightWeightProperty(1)] // For best performance, start with index 0 and increment, though they don't need to be in order
+    [LightWeightProperty(1)] // Start with index of 0 and increment for each additional field (skipping number is fine)
     public Boolean Vegetable;
 }
 
