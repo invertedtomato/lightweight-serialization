@@ -1,6 +1,5 @@
 using System;
 using InvertedTomato.Serialization.LightWeightSerialization;
-using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
 #pragma warning disable 649
 

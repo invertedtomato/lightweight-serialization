@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using InvertedTomato.Serialization.LightWeightSerialization.InternalCoders;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization {
+	/// <summary>
+	/// Threadsafe.
+	/// </summary>
 	public class LightWeight : ISerializer {
-		private static readonly Byte[] EmptyArray = { };
 		private readonly List<ICoderGenerator> CodersGenerators = new List<ICoderGenerator>();
 		private readonly Dictionary<Type, Delegate> DecoderCache = new Dictionary<Type, Delegate>(); // Func<TOut, T, count>
 		private readonly Dictionary<Type, Delegate> EncoderCache = new Dictionary<Type, Delegate>(); // Func<T, TIn>
@@ -16,7 +17,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		private readonly Object Sync = new Object();
 
 		public LightWeight() {
-			// Load internal coder generators
+			// Load internal coder generators (applied in reverse order of priority)
 			LoadCoderGenerator(new ClassCoderGenerator()); // Must be first, so that it's considered a last resort
 			LoadCoderGenerator(new IDictionaryCoderGenerator());
 			LoadCoderGenerator(new IListCoderGenerator());

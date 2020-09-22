@@ -1,6 +1,6 @@
 using System;
 
-namespace InvertedTomato.Serialization.LightWeightSerialization.Extensions {
+namespace Tests {
 	public static class HexStringExtensions {
 		public static String ToHexString(this UInt16 target, Int32 minBytes = 0) {
 			var output = target.ToString("X").Replace("-", "");

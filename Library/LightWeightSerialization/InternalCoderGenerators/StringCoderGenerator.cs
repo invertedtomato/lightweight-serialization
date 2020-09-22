@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Text;
-using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class StringCoderGenerator : ICoderGenerator {

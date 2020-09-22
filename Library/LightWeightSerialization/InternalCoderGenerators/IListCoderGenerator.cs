@@ -5,6 +5,7 @@ using System.Reflection;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class IListCoderGenerator : ICoderGenerator {
+		// Precompute null value for performance
 		private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
 
 		public Boolean IsCompatibleWith<T>() {

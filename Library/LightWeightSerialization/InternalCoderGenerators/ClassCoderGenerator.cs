@@ -2,10 +2,10 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
-using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class ClassCoderGenerator : ICoderGenerator {
+		// Precompute values for performance
 		private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
 		private static readonly EncodeBuffer One = new EncodeBuffer(UnsignedVlq.Encode(1));
 
@@ -67,7 +67,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 			// Check that no indexes have been missed
 			for (var i = 0; i < fieldCount; i++) {
 				if (null == fields[i]) {
-					throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}.");
+					throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}."); // TODO: Make so indexes can be skipped for easier versioning
 				}
 			}
 

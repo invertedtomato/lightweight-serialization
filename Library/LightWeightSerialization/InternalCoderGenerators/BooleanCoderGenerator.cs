@@ -3,6 +3,7 @@ using System.IO;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders {
 	public class BooleanCoderGenerator : ICoderGenerator {
+		// Precompute values for performance
 		private const Byte False = 0x00;
 		private const Byte True = 0x01;
 		private static readonly EncodeBuffer FalseBuffer = new EncodeBuffer(new ArraySegment<Byte>(new[] {False}));

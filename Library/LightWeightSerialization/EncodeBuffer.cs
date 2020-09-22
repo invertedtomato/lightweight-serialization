@@ -30,7 +30,6 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		/// <summary>
 		/// Initialize with a given set of payloads, leaving no room for a header.
 		/// </summary>
-		/// <param name="payloads"></param>
 		public EncodeBuffer(params ArraySegment<Byte>[] payloads) {
 			TotalLength = payloads.Sum(a => a.Count);
 			Offset = 0;

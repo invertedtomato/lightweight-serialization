@@ -19,7 +19,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 		public static ArraySegment<Byte> Encode(UInt64 value) {
 #if DEBUG
 			if (value > MaxValue) {
-				throw new OverflowException("Symbol is larger than maximum supported value. See UnsignedVlq.MaxValue.");
+				throw new OverflowException($"Symbol is larger than maximum supported value {UnsignedVlq.MaxValue}.");
 			}
 #endif
 
@@ -88,7 +88,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization {
 #if DEBUG
 				// Check for overflow
 				if (symbol < pre) {
-					throw new OverflowException("Symbol is larger than maximum supported value or is corrupt. See UnsignedVlq.MaxValue.");
+					throw new OverflowException($"Symbol is corrupt, or larger than maximum supported value {UnsignedVlq.MaxValue}.");
 				}
 #endif
 

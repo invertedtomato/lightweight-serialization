@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using InvertedTomato.Serialization.LightWeightSerialization;
-using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
 
 namespace Tests {

@@ -1,6 +1,5 @@
 using System;
 using InvertedTomato.Serialization.LightWeightSerialization;
-using InvertedTomato.Serialization.LightWeightSerialization.Extensions;
 using Xunit;
 
 namespace Tests {
