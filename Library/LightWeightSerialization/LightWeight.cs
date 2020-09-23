@@ -46,7 +46,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization
             var rootSerializer = GetEncoder<T>();
 
             // Invoke root serializer
-            var output = (EncodeBuffer)rootSerializer.DynamicInvoke(value);
+            var output = (EncodeBuffer)rootSerializer.DynamicInvokeTransparent(value);
 
             // Allocate output buffer
             var buffer = new Byte[output.TotalLength];
@@ -82,7 +82,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization
             var root = GetDecoder<T>();
 
             // Invoke root serializer
-            var value = root.DynamicInvoke(new DecodeBuffer(input));
+            var value = root.DynamicInvokeTransparent(new DecodeBuffer(input));
             return (T)value;
         }
 

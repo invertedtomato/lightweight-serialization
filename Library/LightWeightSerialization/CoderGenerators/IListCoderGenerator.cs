@@ -38,7 +38,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 var output = new EncodeBuffer();
                 foreach (var element in value)
                 {
-                    output.Append((EncodeBuffer)valueEncoder.DynamicInvoke(element));
+                    output.Append((EncodeBuffer)valueEncoder.DynamicInvokeTransparent(element));
                 }
 
                 // Encode length
@@ -74,7 +74,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 for (var i = 0; i < count; i++)
                 {
                     // Deserialize element
-                    var element = valueDecoder.DynamicInvoke(input);
+                    var element = valueDecoder.DynamicInvokeTransparent(input);
 
                     // Add to output
                     output.Add(element);

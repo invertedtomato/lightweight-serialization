@@ -35,8 +35,8 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 UInt64 count = 0;
                 while (e.MoveNext())
                 {
-                    output.Append((EncodeBuffer)keyEncoder.DynamicInvoke(e.Key));
-                    output.Append((EncodeBuffer)valueEncoder.DynamicInvoke(e.Value));
+                    output.Append((EncodeBuffer)keyEncoder.DynamicInvokeTransparent(e.Key));
+                    output.Append((EncodeBuffer)valueEncoder.DynamicInvokeTransparent(e.Value));
                     count++;
                 }
 
@@ -73,10 +73,10 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 for (var i = 0; i < count; i++)
                 {
                     // Deserialize key
-                    var keyValue = keyDecoder.DynamicInvoke(input);
+                    var keyValue = keyDecoder.DynamicInvokeTransparent(input);
 
                     // Deserialize value
-                    var valueValue = valueDecoder.DynamicInvoke(input);
+                    var valueValue = valueDecoder.DynamicInvokeTransparent(input);
 
                     // Add to output
                     output[keyValue] = valueValue;

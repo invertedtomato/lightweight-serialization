@@ -110,7 +110,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                     var v = field.GetValue(value);
 
                     // Add to output
-                    output.Append((EncodeBuffer)encoder.DynamicInvoke(v));
+                    output.Append((EncodeBuffer)encoder.DynamicInvokeTransparent(v));
                 }
 
                 // Encode length
@@ -192,7 +192,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                     var field = fields[i];
 
                     // Deserialize value
-                    var value = coders[i].DynamicInvoke(innerInput);
+                    var value = coders[i].DynamicInvokeTransparent(innerInput);
 
                     // Set it on property
                     field.SetValue(output, value);
