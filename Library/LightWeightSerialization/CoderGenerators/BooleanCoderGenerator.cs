@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders
+namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 {
     public class BooleanCoderGenerator : ICoderGenerator
     {

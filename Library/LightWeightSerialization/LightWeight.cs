@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using InvertedTomato.Serialization.LightWeightSerialization.InternalCoders;
+using InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization
 {

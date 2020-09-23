@@ -2,18 +2,18 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders
+namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 {
-    public class DoubleCoderGenerator : ICoderGenerator
+    public class SingleCoderGenerator : ICoderGenerator
     {
         public Boolean IsCompatibleWith<T>()
         {
-            return typeof(T) == typeof(Double);
+            return typeof(T) == typeof(Single);
         }
 
         public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse)
         {
-            return new Func<Double, EncodeBuffer>(value =>
+            return new Func<Single, EncodeBuffer>(value =>
             {
                 return new EncodeBuffer(new ArraySegment<Byte>(BitConverter.GetBytes(value)));
             });
@@ -21,9 +21,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders
 
         public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse)
         {
-            return new Func<DecodeBuffer, Double>(input =>
+            return new Func<DecodeBuffer, Single>(input =>
             {
-                return BitConverter.ToDouble(input.Underlying, input.GetIncrementOffset(8));
+                return BitConverter.ToSingle(input.Underlying, input.GetIncrementOffset(4));
             });
         }
     }

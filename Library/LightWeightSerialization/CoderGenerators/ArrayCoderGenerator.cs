@@ -1,32 +1,26 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 
-namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders
+namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 {
-    public class IListCoderGenerator : ICoderGenerator
+    public class ArrayCoderGenerator : ICoderGenerator
     {
         // Precompute null value for performance
         private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
 
         public Boolean IsCompatibleWith<T>()
         {
-            // This explicitly does not support arrays (otherwise they could get matched with the below check)
-            if (typeof(T).IsArray)
-            {
-                return false;
-            }
-
-            return typeof(IList).GetTypeInfo().IsAssignableFrom(typeof(T));
+            return typeof(T).IsArray;
         }
 
         public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse)
         {
             // Get serializer for sub items
-            var valueEncoder = recurse(type.GenericTypeArguments[0]);
+            var valueEncoder = recurse(type.GetElementType());
 
-            return new Func<IList, EncodeBuffer>(value =>
+            return new Func<Array, EncodeBuffer>(value =>
             {
                 // Handle nulls
                 if (null == value)
@@ -36,13 +30,13 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders
 
                 // Serialize elements
                 var output = new EncodeBuffer();
-                foreach (var element in value)
+                foreach (var subValue in value)
                 {
-                    output.Append((EncodeBuffer)valueEncoder.DynamicInvoke(element));
+                    output.Append((EncodeBuffer)valueEncoder.DynamicInvoke(subValue));
                 }
 
                 // Encode length
-                output.SetFirst(UnsignedVlq.Encode((UInt64)value.Count + 1));
+                output.SetFirst(UnsignedVlq.Encode((UInt64)value.Length + 1)); // Number of elements, not number of bytes
 
                 return output;
             });
@@ -51,34 +45,36 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.InternalCoders
         public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse)
         {
             // Get deserializer for sub items
-            var valueDecoder = recurse(type.GenericTypeArguments[0]);
+            var valueDecoder = recurse(type.GetElementType());
 
-            return new Func<DecodeBuffer, IList>(input =>
+            return new Func<DecodeBuffer, Array>(input =>
             {
-                // Read header
                 var header = UnsignedVlq.Decode(input);
 
-                // Handle nulls
                 if (header == 0)
                 {
                     return null;
                 }
 
                 // Determine length
-                var count = (Int32)header - 1;
+                var length = (Int32)header - 1;
 
                 // Instantiate list
-                var output = (IList)Activator.CreateInstance(type); //typeof(List<>).MakeGenericType(type.GenericTypeArguments)
+                var container = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(type.GetElementType()));
 
                 // Deserialize until we reach length limit
-                for (var i = 0; i < count; i++)
+                for (var i = 0; i < length; i++)
                 {
                     // Deserialize element
                     var element = valueDecoder.DynamicInvoke(input);
 
                     // Add to output
-                    output.Add(element);
+                    container.Add(element);
                 }
+
+                // Convert to array and return
+                var output = Array.CreateInstance(type.GetElementType(), container.Count);
+                container.CopyTo(output, 0);
 
                 return output;
             });
