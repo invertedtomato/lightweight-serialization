@@ -3,32 +3,31 @@
 ## Data types and treatments
 | Data type    | Summary                                                                                                                 |
 |--------------|-------------------------------------------------------------------------------------------------------------------------|
-| Bool         | `TRUE` encodes as `0x01`, `FALSE` encodes as `0x00`.                                                                    |
-| UInt8        | Raw single byte.                                                                                                        |
-| SInt8        | Raw single byte.                                                                                                        |
-| UInt16/32/64 | Encoded using [VLQ][VLQ].                                                                                                      |
-| SInt16/32/64 | Encoded using ZigZag then VLQ.                                                                                          |
-| String       | Encoded using UTF-8, prefixed with VLQ-encoded length.                                                                  |
-| Arrays/Lists | Number of elements encoded using VLQ, followed by each element, with no separator.                                      |
-| Maps         | Number of elements encoded using VLQ, followed by each element's keys and values interleaved, with no separator.        |
-| Nullable     | As a variation to the above, the initial value (length etc) is incremented by 1, and `0x00` is used to express `NULL`.  |
+| [Bool](#Booleans)                  | `TRUE` encodes as `0x01`, `FALSE` encodes as `0x00`.                                                                    |
+| [UInt8/SInt8](#Bytes)    | Raw single byte.                                                                                                        |
+| [UInt16/32/64](#Unsigned-integers) | Encoded using [VLQ](#VLQ-encoding).                                                                                     |
+| [SInt16/32/64](#Signed-integers)   | Encoded using [ZigZag](#ZigZag-encoding) then [VLQ](#VLQ-encoding).                                                     |
+| [String](#Strings)                 | Encoded using UTF-8, prefixed with [VLQ](#VLQ-encoding)-encoded length.                                                 |
+| [Arrays/Lists](#Arrays-and-lists)  | Number of elements encoded using [VLQ](#VLQ-encoding), followed by each element, with no separator.                     |
+| [Maps](#Maps)                      | Number of elements encoded using [VLQ](#VLQ-encoding), followed by each element's keys and values interleaved, with no separator. |
+| [Nullable](#Nullable)              | As a variation to the above, the initial value (length etc) is incremented by 1, and `0x00` is used to express `NULL`.  |
 
 ### Booleans
 Booleans are the simplest of all. `TRUE` is simply encoded as `0x01` and `FALSE`
 as `0x00`. Both of these encode then naturally encode as a single byte with no
 header necessary.
 
-### UInt8 (byte) and SInt8
+### Bytes
 Since `UInt8`s and `SInt8`s are already a single byte these are stored as-is, without 
 any modification. This then means that each value consumes a single byte with no
-header necessary.
+header necessary. If you're thinking about a byte array, see [Arrays and lists](#Arrays-and-lists).
 
-### UInt16, UInt32 and UInt64
+### Unsigned integers
 Regardless of the bit length, these three unsigned integers are encoded using the
 VLQ algorithm. The result is a header-less value of between one and ten bytes. At best
 this is seven bytes shorter than it's decoded format, and at worst two bytes longer.
 
-### SInt16, SInt32 and SInt64
+### Signed integers
 Firstly these are encoded using the ZigZag algorithm to convert them to a managable
 unsigned format, and then encoded with VLQ, similar to the unsigned integers.
 
@@ -76,18 +75,18 @@ For example {1:"a", 2:"b", 3:"c"} is encoded as:
 Any of the above data types are adapted to being nullable by incrementing the initial number by one, and using `0x00` to represent `NULL`. That is, a string of a single character would start with `0x02` instead of `0x01`, and `0x00` is used for `NULL` values.
 
 
-## Base algorithms
+## Supporting algorithms
 To understand the encoding of each field you must first be familiar with the
 basic algorithms used in the encodings. 
 
-### Variable length quantities (VLQ)
+### VLQ encoding
 Variable length quantity is a technique where a number is encoded using just seven
 bits out of each byte, and using the remaining spare bit as a flag to indicate if
 there are more bytes to follow. We have followed the Git VLQ implmenetation which
 further removes redundancy by using the prepending-redundancy technique
 [described in Wikipedia](https://en.wikipedia.org/wiki/Variable-length_quantity).
 
-## [ZigZag]
+## ZigZag encoding
 As described in Wikipedia:
 Naively encoding a signed integer using two's complement means that −1 is 
 represented as an unending sequence of ...11; for fixed length (e.g., 64-bit), 
@@ -97,16 +96,3 @@ numbers so that encoded 0 corresponds to 0, 1 to −1, 10 to 1, 11 to −2, 100 
 (since each step changes the least-significant bit, hence the sign), whence the 
 name "zigzag encoding". Concretely, transform the integer as 
 (n << 1) ^ (n >> k - 1) for fixed k-bit integers.
-
-
-
-## Design objectives
-The LightWeight protocol is built around the following assumptions;
- * The receiver is assumed to have a schema to understand a message's structure
- * Legacy receivers will co-exist with modern receives, so both forward and backwards compatibility is required
-
-With those assumptions in mind, LightWeight has the following prioritised goals:
- * Don't be a compression algorithm or use compression algorithms - if the user desires the payload can also be compressed to further save space
- * Be as efficient as possible, producing payloads with the minimum number of bytes possible
- * Be as simple as possible, the protocol must be simple enough to explain over a coffee with a senior developer
-(If there is a conflict in the priorities the higher priority wins)
