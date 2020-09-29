@@ -1,12 +1,21 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using InvertedTomato.Serialization.LightWeightSerialization.TransformationAttributes;
 
 namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 {
     public class ClassCoderGenerator : ICoderGenerator
     {
+        private class Record
+        {
+            public FieldInfo Field { get; set; }
+            public Delegate Coder { get; set; }
+            public TransformationAttribute[] Transformations { get; set; }
+        }
+
         // Precompute values for performance
         private static readonly EncodeBuffer Null = new EncodeBuffer(UnsignedVlq.Encode(0));
         private static readonly EncodeBuffer One = new EncodeBuffer(UnsignedVlq.Encode(1));
@@ -26,10 +35,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 
         public Delegate GenerateEncoder(Type type, Func<Type, Delegate> recurse)
         {
-            // Find all properties decorated with LightWeightProperty attribute
-            var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
-            var coders = new Delegate[Byte.MaxValue]; // Index => Encoder/Decoder
+            var records = new Record[Byte.MaxValue];
 
+            // Find all properties decorated with LightWeightProperty attribute
             var fieldCount = -1;
             foreach (var property in type.GetRuntimeFields())
             {
@@ -42,9 +50,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 }
 
                 // Check for duplicate index
-                if (null != fields[attribute.Index])
+                if (null != records[attribute.Index])
                 {
-                    throw new DuplicateIndexException($"The index {fields[attribute.Index]} is already used and cannot be reused.");
+                    throw new DuplicateIndexException($"The index {attribute.Index} is already used and cannot be reused.");
                 }
 
                 // Note the max index used
@@ -56,9 +64,16 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 // Find/create encoder
                 var encoder = recurse(property.FieldType);
 
+                // Find floor, if any
+                var transformations = property.GetCustomAttributes<TransformationAttribute>(true).ToArray();
+
                 // Store property in lookup
-                fields[attribute.Index] = property;
-                coders[attribute.Index] = encoder;
+                records[attribute.Index] = new Record()
+                {
+                    Field = property,
+                    Coder = encoder,
+                    Transformations = transformations
+                };
             }
 
             // If no properties, shortcut the whole thing and return a blank
@@ -79,7 +94,7 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
             // Check that no indexes have been missed
             for (var i = 0; i < fieldCount; i++)
             {
-                if (null == fields[i])
+                if (null == records[i])
                 {
                     throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}."); // TODO: Make so indexes can be skipped for easier versioning
                 }
@@ -97,20 +112,25 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 
                 for (Byte i = 0; i <= fieldCount; i++)
                 {
-                    var field = fields[i];
-                    var encoder = coders[i];
+                    var record = records[i];
 
                     // Get the serializer for the sub-item
-                    var subType = recurse(field.FieldType);
+                    var subType = recurse(record.Field.FieldType);
 
                     // Get it's method info
                     var subMethodInfo = subType.GetMethodInfo();
 
                     // Extract value
-                    var v = field.GetValue(value);
+                    var v = record.Field.GetValue(value);
+
+                    // Apply transformations
+                    foreach (var transformation in record.Transformations)
+                    {
+                        v = transformation.ApplyEffect(v);
+                    }
 
                     // Add to output
-                    output.Append((EncodeBuffer)encoder.DynamicInvokeTransparent(v));
+                    output.Append((EncodeBuffer)record.Coder.DynamicInvokeTransparent(v));
                 }
 
                 // Encode length
@@ -122,9 +142,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
 
         public Delegate GenerateDecoder(Type type, Func<Type, Delegate> recurse)
         {
+            var records = new Record[Byte.MaxValue];
+
             // Find all properties decorated with LightWeightProperty attribute
-            var fields = new FieldInfo[Byte.MaxValue]; // Index => Field
-            var coders = new Delegate[Byte.MaxValue]; // Index => Encoder/Decoder
 
             var maxIndex = -1;
             foreach (var property in type.GetRuntimeFields())
@@ -138,9 +158,9 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 }
 
                 // Check for duplicate index
-                if (null != fields[attribute.Index])
+                if (null != records[attribute.Index])
                 {
-                    throw new DuplicateIndexException($"The index {fields[attribute.Index]} is already used and cannot be reused.");
+                    throw new DuplicateIndexException($"The index {attribute.Index} is already used and cannot be reused.");
                 }
 
                 // Note the max index used
@@ -152,15 +172,22 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 // Find/create encoder
                 var decoder = recurse(property.FieldType);
 
+                // Find floor, if any
+                var transformations = property.GetCustomAttributes<TransformationAttribute>(true).ToArray();
+
                 // Store property in lookup
-                fields[attribute.Index] = property;
-                coders[attribute.Index] = decoder;
+                records[attribute.Index] = new Record()
+                {
+                    Field = property,
+                    Coder = decoder,
+                    Transformations = transformations
+                };
             }
 
             // Check that no indexes have been missed
             for (var i = 0; i < maxIndex; i++)
             {
-                if (null == fields[i])
+                if (null == records[i])
                 {
                     throw new MissingIndexException($"Indexes must not be skipped, however missing index {i}.");
                 }
@@ -189,13 +216,19 @@ namespace InvertedTomato.Serialization.LightWeightSerialization.CoderGenerators
                 // Isolate bytes for body
                 for (var i = 0; i <= maxIndex; i++)
                 {
-                    var field = fields[i];
+                    var record = records[i];
 
                     // Deserialize value
-                    var value = coders[i].DynamicInvokeTransparent(innerInput);
+                    var v = record.Coder.DynamicInvokeTransparent(innerInput);
+
+                    // Apply transformations
+                    foreach (var transformation in record.Transformations)
+                    {
+                        v = transformation.RemoveEffect(v);
+                    }
 
                     // Set it on property
-                    field.SetValue(output, value);
+                    record.Field.SetValue(output, v);
                 }
 
                 return output;
