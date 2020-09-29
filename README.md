@@ -1,7 +1,9 @@
 # LightWeight
 ## Introduction
-LightWeight is a fresh take on serialization. By including only the bare minimum bytes it produces outputs smaller than ProtoBuff and MsgPack. This 
-small output size is achieved using similar CPU overheads.
+Do you need your structured data to be as small as possible for storage or transport? Perhaps you're capturing stacks of data for archiving, or you have
+a high performance message bus that is being overwealmed. LightWeight is a serialization algorithm just for this purpose. It packages data using barely any overheals, and with supprisingly little CPU. 
+
+LightWeight outperforms both Google ProtoBuff and MsgPack in terms of file size, with similar performance in the libraries tested.
 
 ## How do I make it go?
 ```c#
