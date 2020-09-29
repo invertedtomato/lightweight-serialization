@@ -10,7 +10,7 @@
     <Description>Extremely compact serialization for when size matters more than functionality. Produces output smaller than JSON, ProtoBuf and MsgPack. </Description>
     <PackageVersion>0.2.0</PackageVersion>
     <PackageProjectUrl>https://github.com/invertedtomato/lightweight-serialization</PackageProjectUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/invertedtomato/lightweight-serialization/master/LICENSE</PackageLicenseUrl>
+    <License>https://raw.githubusercontent.com/invertedtomato/lightweight-serialization/master/LICENSE</License>
     <RepositoryUrl>https://github.com/invertedtomato/lightweight-serialization</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>serialization,serialisation,compact,protobuf,msgpack</PackageTags>
