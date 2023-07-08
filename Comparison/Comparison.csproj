@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,8 +10,9 @@
     <PackageReference Include="CommonSerializer.Jil" Version="1.1.1" />
     <PackageReference Include="CommonSerializer.MsgPack.Cli" Version="1.1.1" />
     <PackageReference Include="CommonSerializer.Protobuf-net" Version="1.1.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
+    <PackageReference Update="Microsoft.NETCore.App" Version="2.1.30" />
   </ItemGroup>
 
   <ItemGroup>
